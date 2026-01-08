@@ -88,14 +88,12 @@ export const Sidebar = ({ sidebarSize = 'tight' }) => {
     setIsLoading(false)
   }
 
-  const matchesSearch = (records, searchValue) => {
+  const matchesSearch = (folder, searchValue) => {
     if (!searchValue) {
       return false
     }
 
-    return records.some((record) =>
-      matchPatternToValue(searchValue, record?.data?.title ?? '')
-    )
+    return matchPatternToValue(searchValue, folder)
   }
 
   const folders = React.useMemo(() => {
@@ -117,7 +115,7 @@ export const Sidebar = ({ sidebarSize = 'tight' }) => {
           })) ?? []
       },
       {
-        name: i18n._('All Folders'),
+        name: i18n._('All Items'),
         id: 'allFolders',
         isOpenInitially: expandedFolders.includes('allFolders'),
         children: [
@@ -126,7 +124,7 @@ export const Sidebar = ({ sidebarSize = 'tight' }) => {
             id: folder.name,
             isActive: routerData?.folder === folder.name,
             isOpenInitially:
-              matchesSearch(folder.records ?? [], searchValue) ||
+              matchesSearch(folder.name, searchValue) ||
               expandedFolders.includes(folder.name),
             children: folder.records?.map((record) => ({
               name: record?.data?.title,
@@ -181,13 +179,18 @@ export const Sidebar = ({ sidebarSize = 'tight' }) => {
         ${!isLoading &&
         html`
           <${SidebarNestedFoldersContainer}>
-            <${SidebarSearch} value=${searchValue} onChange=${setSearchValue} />
+            <${SidebarSearch}
+              testId="sidebar-folder-search"
+              value=${searchValue}
+              onChange=${setSearchValue}
+            />
 
-            <${FoldersWrapper}>
+            <${FoldersWrapper} data-testid="sidebar-folders-container">
               ${folders.map(
                 (folder) =>
                   html`<${SidebarNestedFolders}
                     item=${folder}
+                    testId=${`sidebar-folder-${folder.id}`}
                     onFolderExpandToggle=${handleFolderExpandToggle}
                     key="rootFolder"
                   />`
@@ -198,18 +201,29 @@ export const Sidebar = ({ sidebarSize = 'tight' }) => {
       <//>
 
       <${SidebarSettings}>
-        <${SettingsContainer} onClick=${handleSettingsClick}>
+        <${SettingsContainer}
+          data-testid="sidebar-settings-button"
+          onClick=${handleSettingsClick}
+        >
           <${SettingsIcon} size="24" />
           ${i18n._('Settings')}
         <//>
 
         <${SettingsSeparator} />
 
-        <${ButtonThin} startIcon=${UserSecurityIcon} onClick=${handleAddDevice}>
+        <${ButtonThin}
+          testId="sidebar-adddevice-button"
+          startIcon=${UserSecurityIcon}
+          onClick=${handleAddDevice}
+        >
           ${i18n._('Add a Device')}
         <//>
 
-        <${ButtonThin} startIcon=${ExitIcon} onClick=${handleExitVault}>
+        <${ButtonThin}
+          testId="sidebar-exit-button"
+          startIcon=${ExitIcon}
+          onClick=${handleExitVault}
+        >
           ${i18n._('Exit Vault')}
         <//>
       <//>

@@ -15,15 +15,17 @@ import { CommonFileIcon, InputField } from '../../lib-react-components'
  *  isDisabled?: boolean,
  *  onClick?: () => void,
  *  type?: 'text' | 'password' | 'url',
- *  variant?: 'default' | 'outline'
+ *  variant?: 'default' | 'outline',
+ *  testId?: string
  * }} props
  */
 export const InputFieldComment = (props) => {
   const { i18n } = useLingui()
 
   return html`<${InputField}
-    label=${i18n._('Comment')}
-    placeholder=${i18n._('Add comment')}
+    testId=${props.testId}
+    label=${i18n._('Note')}
+    placeholder=${i18n._('Add note')}
     variant="outline"
     icon=${CommonFileIcon}
     ...${props}

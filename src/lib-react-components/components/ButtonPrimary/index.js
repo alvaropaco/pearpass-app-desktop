@@ -8,13 +8,25 @@ import { Button } from './styles'
  *  size?: 'sm' | 'md' | 'lg',
  *  onClick: () => void
  *  type?: 'button' | 'submit'
+ *  testId?: string
+ *  width?: string
  * }} props
  */
 export const ButtonPrimary = ({
   children,
   size = 'md',
   onClick,
-  type = 'button'
+  type = 'button',
+  testId = 'button-primary',
+  width
 }) => html`
-  <${Button} size=${size} onClick=${onClick} type=${type}> ${children} <//>
+  <${Button}
+    size=${size}
+    onClick=${onClick}
+    type=${type}
+    data-testid=${testId}
+    width=${width}
+  >
+    ${children}
+  <//>
 `
