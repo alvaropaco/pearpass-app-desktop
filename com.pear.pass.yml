@@ -22,7 +22,7 @@ finish-args:
   - --socket=x11
   # Audio (for notification sounds)
   - --socket=pulseaudio
-  # Device access (may be needed for hardware security keys)
+  # Device access needed for full functionality
   - --device=all
   # System tray support
   - --talk-name=org.kde.StatusNotifierWatcher
@@ -30,12 +30,8 @@ finish-args:
   - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
   # Screen saver interaction (prevent idle during sensitive operations)
   - --talk-name=org.freedesktop.ScreenSaver
-  # Secrets service for keyring integration
-  - --talk-name=org.freedesktop.secrets
-  # Persistent storage for Pear configuration
+  # Persistent storage for Pear runtime and app data
   - --persist=.config/pear
-  # Persistent storage for PearPass vault data
-  - --persist=.pearpass
 modules:
   - name: pearpass-x64
     only-arches:
@@ -66,7 +62,7 @@ modules:
         sha512: 961567834706eb09a8c45009c828ee0d1ec04d9969eafb87502855f408e9fd0e84b6c02ae4bea9671601f47878495b5d3398324aeba4f640f8617441b18931a2
       # Main application binary archive (source from GitHub release)
       - type: archive
-        url: https://github.com/tetherto/pearpass-app-desktop/archive/refs/tags/v1.0.1.tar.gz
+        url: https://static.tether.dev/pearpass/flatpak-assets-1.0.0.tar.gz
         sha512: 5974afe2acb4b0263f5da90106da7e513a561c73a9fd80375d6de589668e55eaec6f91dcf1d8ae6644137a2635e485baf70e969734e18c387e57d026b3779fa2
         strip-components: 0
 
