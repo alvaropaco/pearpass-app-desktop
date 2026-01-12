@@ -130,6 +130,12 @@ module.exports = html`
       flex-direction: column;
     }
 
+    footer svg {
+      width: 35px;
+      height: 47.175px;
+      aspect-ratio: 35.00 / 47.17;
+    }
+
     button {
       background-color: #9fc131;
       color: var(--color-grey-950);
