@@ -36,15 +36,33 @@ module.exports = html`
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      background-color: red;
+      background-color: #121212;
     }
 
     body {
       margin: 0;
-      background: var(--color-gradient-background);
+      background: #121212;
       color: var(--color-white);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         Oxygen, Ubuntu, Cantarell, sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Blurred ellipse background effect */
+    body::before {
+      content: '';
+      position: absolute;
+      top: -34vh;
+      left: 3.2%;
+      width: 93.6vw;
+      height: 52.6vh;
+      background: #B0D944;
+      border-radius: 50%;
+      filter: blur(150px);
+      opacity: 0.3;
+      z-index: 0;
+      pointer-events: none;
     }
 
     img {
@@ -78,6 +96,8 @@ module.exports = html`
       justify-content: center;
       padding: 0 3.8rem;
       height: 100vh;
+      position: relative;
+      z-index: 1;
     }
 
     header {
@@ -85,6 +105,12 @@ module.exports = html`
       align-items: center;
       flex-direction: column;
       text-align: center;
+      margin-bottom: 5.377rem;
+    }
+
+    header svg {
+      width: 215px;
+      height: 45.2px;
     }
 
     article {
