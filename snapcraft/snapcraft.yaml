@@ -7,7 +7,7 @@ description: A secure, decentralized and fully local password manager
 grade: stable
 license: Apache-2.0
 website: https://pass.pears.com
-confinement: strict
+confinement: classic
 plugs:
   dot-config-pear:
     interface: personal-files
