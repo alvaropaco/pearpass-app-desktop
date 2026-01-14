@@ -213,7 +213,7 @@ jobs:
         run: |
           bare-build \
             --identifier "com.pears.pass" \
-            --target=darwin-${{ matrix.arch }} \
+            --host=darwin-${{ matrix.arch }} \
             --icon lib/icons/darwin/icon.png \
             --sign \
             --identity "$APPLE_SIGNING_IDENTITY" \
