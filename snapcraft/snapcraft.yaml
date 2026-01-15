@@ -7,26 +7,11 @@ description: A secure, decentralized and fully local password manager
 grade: stable
 license: Apache-2.0
 website: https://pass.pears.com
-confinement: devmode
-plugs:
-  dot-config-pear:
-    interface: personal-files
-    write:
-      - $HOME/.config/pear
-  shmem:
-    interface: shared-memory
-    private: true
+confinement: classic
 apps:
   pearpass:
-    extensions: [gnome]
     command: assets/usr/bin/pearpass
     common-id: com.pears.pass
-    plugs:
-      - home
-      - network
-      - network-observe
-      - system-files
-      - dot-config-pear
 platforms:
   amd64:
     build-on: amd64
