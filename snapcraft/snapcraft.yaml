@@ -36,9 +36,14 @@ plugs:
 # using absolute paths under /usr/lib/<triplet>/webkitgtk-6.0.
 # In a snap, our staged files live under $SNAP/usr/..., so we bind-mount the
 # expected location to the staged directory.
+# NOTE: snapd/snapcraft do not expand $SNAPCRAFT_ARCH_TRIPLET in `layout:`.
+# Define both common multiarch triplets; only the active architecture will be
+# used by WebKitGTK, but both bind sources must exist.
 layout:
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkitgtk-6.0:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkitgtk-6.0
+  /usr/lib/aarch64-linux-gnu/webkitgtk-6.0:
+    bind: $SNAP/usr/lib/aarch64-linux-gnu/webkitgtk-6.0
+  /usr/lib/x86_64-linux-gnu/webkitgtk-6.0:
+    bind: $SNAP/usr/lib/x86_64-linux-gnu/webkitgtk-6.0
 parts:
   pearpass:
     plugin: dump
@@ -59,6 +64,9 @@ parts:
       craftctl default
       # Ensure the mount point exists for the WebKitGTK content snap.
       mkdir -p "$CRAFT_PRIME/webkitgtk-platform"
+      # Ensure layout bind source directories exist on all architectures.
+      mkdir -p "$CRAFT_PRIME/usr/lib/aarch64-linux-gnu/webkitgtk-6.0" \
+               "$CRAFT_PRIME/usr/lib/x86_64-linux-gnu/webkitgtk-6.0"
 apps:
   pearpass:
     command: usr/bin/pear-pass
