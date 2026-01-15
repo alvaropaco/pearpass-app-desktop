@@ -23,6 +23,14 @@ platforms:
   arm64:
     build-on: arm64
     build-for: arm64
+
+# Provide WebKitGTK runtime via the content snap. This avoids relying on the
+# host OS having WebKitGTK 6 installed (Ubuntu 22.04 doesn't).
+plugs:
+  webkitgtk-6-gnome-2404:
+    interface: content
+    target: $SNAP/webkitgtk-platform
+    default-provider: webkitgtk-6-gnome-2404
 parts:
   pearpass:
     plugin: dump
@@ -39,11 +47,14 @@ apps:
   pearpass:
     command: usr/bin/pear-pass
     desktop: usr/share/applications/PearPass.desktop
+    plugs:
+      - webkitgtk-6-gnome-2404
     environment:
       # The app loads native addons (e.g. fx-native) which depend on WebKitGTK.
-      # In classic confinement the dynamic loader may not automatically search
-      # the snap's multi-arch library directories, so include them explicitly.
-      LD_LIBRARY_PATH: $SNAP/usr/lib:$SNAP/usr/lib/aarch64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/lib/aarch64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+      # Ensure both the content-snap libraries and our staged libraries are in
+      # the dynamic loader search path.
+      LD_LIBRARY_PATH: $SNAP/webkitgtk-platform/usr/lib:$SNAP/webkitgtk-platform/usr/lib/aarch64-linux-gnu:$SNAP/webkitgtk-platform/usr/lib/x86_64-linux-gnu:$SNAP/usr/lib:$SNAP/usr/lib/aarch64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/lib/aarch64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+      PATH: $SNAP/webkitgtk-platform/usr/bin:$PATH
 lint:
   ignore:
     - library:
