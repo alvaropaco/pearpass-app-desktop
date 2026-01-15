@@ -84,6 +84,11 @@ apps:
       # The app loads native addons (e.g. fx-native) which depend on WebKitGTK.
       # Ensure both the content-snap libraries and our staged libraries are in
       # the dynamic loader search path.
+      # Work around blank/transparent GTK4/WebKit rendering in strict snaps on
+      # some systems by forcing software rendering.
+      GSK_RENDERER: cairo
+      # Reduce AppArmor denials/noise from WebKit's memory pressure monitor.
+      WEBKIT_DISABLE_MEMORY_PRESSURE_MONITOR: "1"
       LD_LIBRARY_PATH: $SNAP/webkitgtk-platform/usr/lib:$SNAP/webkitgtk-platform/usr/lib/aarch64-linux-gnu:$SNAP/webkitgtk-platform/usr/lib/x86_64-linux-gnu:$SNAP/usr/lib:$SNAP/usr/lib/aarch64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/lib/aarch64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
       PATH: $SNAP/webkitgtk-platform/usr/bin:$PATH
 lint:
