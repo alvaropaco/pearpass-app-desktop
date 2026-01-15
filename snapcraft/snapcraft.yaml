@@ -21,11 +21,6 @@ architectures:
     build-for: amd64
   - build-on: arm64
     build-for: arm64
-plugs:
-  webkitgtk-6-gnome-2204:
-    interface: content
-    target: $SNAP/webkitgtk-platform
-    default-provider: webkitgtk-6-gnome-2204
 parts:
   pearpass:
     plugin: dump
@@ -35,25 +30,10 @@ parts:
       - usr/
     stage-packages:
       - libatomic1
-layout:
-  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkitgtk-6.0:
-    bind: $SNAP/webkitgtk-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkitgtk-6.0
 apps:
   pearpass:
     command: usr/bin/pear-pass
-    extensions:
-      - gnome
     desktop: usr/share/applications/PearPass.desktop
-    plugs:
-      - home
-      - network
-      - network-status
-      - network-bind
-      - browser-support
-      - webkitgtk-6-gnome-2204
-    environment:
-      LD_LIBRARY_PATH: $SNAP/webkitgtk-platform/usr/lib:$SNAP/webkitgtk-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
-      PATH: $SNAP/webkitgtk-platform/usr/bin:$PATH
 lint:
   ignore:
     - library:
