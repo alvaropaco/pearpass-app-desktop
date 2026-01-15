@@ -43,6 +43,10 @@ parts:
       - libwebkitgtk-6.0-4
       - libgtk-4-1
       - libjavascriptcoregtk-6.0-1
+    override-prime: |
+      craftctl default
+      # Ensure the mount point exists for the WebKitGTK content snap.
+      mkdir -p "$CRAFT_PRIME/webkitgtk-platform"
 apps:
   pearpass:
     command: usr/bin/pear-pass
