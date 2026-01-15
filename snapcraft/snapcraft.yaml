@@ -30,7 +30,7 @@ parts:
   pearpass:
     plugin: dump
     source-type: local
-    source: ../appling/out/PearPass.AppDir
+    source: PearPass.AppDir
     stage:
       - usr/
     stage-packages:
@@ -40,7 +40,7 @@ layout:
     bind: $SNAP/webkitgtk-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkitgtk-6.0
 apps:
   pearpass:
-    command: usr/bin/pearpass
+    command: usr/bin/pear-pass
     extensions:
       - gnome
     desktop: usr/share/applications/PearPass.desktop
