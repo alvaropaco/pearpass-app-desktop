@@ -43,6 +43,8 @@ parts:
       - libwebkitgtk-6.0-4
       - libgtk-4-1
       - libjavascriptcoregtk-6.0-1
+      # Runtime dependency pulled in by WebKitGTK on some hosts (e.g. Ubuntu 22.04).
+      - libunistring5
     override-prime: |
       craftctl default
       # Ensure the mount point exists for the WebKitGTK content snap.
