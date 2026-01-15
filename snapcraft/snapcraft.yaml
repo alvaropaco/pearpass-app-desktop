@@ -1,40 +1,61 @@
 name: pearpass
-base: core24
-version: "1.0.1"
+version: 4.0.0
 title: PearPass
-summary: A secure, decentralized and fully local password manager
-description: A secure, decentralized and fully local password manager
-grade: stable
+summary: password manager
+description: |
+  Pearpass
 license: Apache-2.0
-website: https://pass.pears.com
-confinement: classic
+website:
+  - https://pass.pears.com
+contact:
+  - https://pass.pears.com
+issues:
+  - https://pass.pears.com
+source-code:
+  - https://github.com/holepunchto
+base: core22
+grade: stable
+confinement: strict
+architectures:
+  - build-on: amd64
+    build-for: amd64
+  - build-on: arm64
+    build-for: arm64
+plugs:
+  webkitgtk-6-gnome-2204:
+    interface: content
+    target: $SNAP/webkitgtk-platform
+    default-provider: webkitgtk-6-gnome-2204
+parts:
+  pearpass:
+    plugin: dump
+    source-type: local
+    source: ../appling/out/PearPass.AppDir
+    stage:
+      - usr/
+    stage-packages:
+      - libatomic1
+layout:
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkitgtk-6.0:
+    bind: $SNAP/webkitgtk-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/webkitgtk-6.0
 apps:
   pearpass:
-    command: assets/usr/bin/pearpass
-    common-id: com.pears.pass
-platforms:
-  amd64:
-    build-on: amd64
-    build-for: amd64
-parts:
-  local_files:
-    plugin: dump
-    source: .
-    source-type: local
-  remote_files:
-    after: [local_files]
-    plugin: dump
-    source:
-      - to amd64: "https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz"
-    source-type: tar
-    organize:
-      pearpass: assets/usr/bin/pearpass
-  execstack:
-    after: [remote_files]
-    build-packages: [execstack]
-    plugin: nil
-    override-prime: |
-      if [[ $CRAFT_ARCH_BUILD_FOR = amd64 ]]
-      then
-        execstack -c assets/usr/bin/pearpass
-      fi
+    command: usr/bin/pearpass
+    extensions:
+      - gnome
+    desktop: usr/share/applications/PearPass.desktop
+    plugs:
+      - home
+      - network
+      - network-status
+      - network-bind
+      - browser-support
+      - webkitgtk-6-gnome-2204
+    environment:
+      LD_LIBRARY_PATH: $SNAP/webkitgtk-platform/usr/lib:$SNAP/webkitgtk-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR:$LD_LIBRARY_PATH
+      PATH: $SNAP/webkitgtk-platform/usr/bin:$PATH
+lint:
+  ignore:
+    - library:
+      - usr/lib/*.so*
+      - usr/lib/**/*.so*
