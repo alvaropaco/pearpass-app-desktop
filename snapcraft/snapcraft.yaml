@@ -15,7 +15,7 @@ source-code:
   - https://github.com/holepunchto
 base: core22
 grade: stable
-confinement: strict
+confinement: classic
 architectures:
   - build-on: amd64
     build-for: amd64
