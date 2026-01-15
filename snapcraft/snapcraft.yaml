@@ -45,6 +45,8 @@ parts:
       - libjavascriptcoregtk-6.0-1
       # Runtime dependency pulled in by WebKitGTK on some hosts (e.g. Ubuntu 22.04).
       - libunistring5
+      # Needed by WebKitGTK multimedia pipeline (provides libgsttranscoder-1.0.so.0).
+      - libgstreamer-plugins-bad1.0-0
     override-prime: |
       craftctl default
       # Ensure the mount point exists for the WebKitGTK content snap.
