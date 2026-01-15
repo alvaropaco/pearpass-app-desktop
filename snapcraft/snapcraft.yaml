@@ -15,7 +15,7 @@ source-code:
   - https://github.com/holepunchto
 base: core24
 grade: stable
-confinement: classic
+confinement: strict
 platforms:
   amd64:
     build-on: amd64
@@ -55,6 +55,13 @@ apps:
     desktop: usr/share/applications/PearPass.desktop
     plugs:
       - webkitgtk-6-gnome-2404
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - network
+      - home
     environment:
       # The app loads native addons (e.g. fx-native) which depend on WebKitGTK.
       # Ensure both the content-snap libraries and our staged libraries are in
