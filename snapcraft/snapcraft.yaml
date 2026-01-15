@@ -30,6 +30,9 @@ parts:
       - usr/
     stage-packages:
       - libatomic1
+      - libwebkitgtk-6.0-4
+      - libgtk-4-1
+      - libjavascriptcoregtk-6.0-1
 apps:
   pearpass:
     command: usr/bin/pear-pass
