@@ -31,6 +31,14 @@ plugs:
     interface: content
     target: $SNAP/webkitgtk-platform
     default-provider: webkitgtk-6-gnome-2404
+
+# WebKitGTK spawns helper processes (WebKitNetworkProcess/WebKitWebProcess/etc)
+# using absolute paths under /usr/lib/<triplet>/webkitgtk-6.0.
+# In a snap, our staged files live under $SNAP/usr/..., so we bind-mount the
+# expected location to the staged directory.
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkitgtk-6.0:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkitgtk-6.0
 parts:
   pearpass:
     plugin: dump
