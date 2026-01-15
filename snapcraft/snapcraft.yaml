@@ -39,6 +39,11 @@ apps:
   pearpass:
     command: usr/bin/pear-pass
     desktop: usr/share/applications/PearPass.desktop
+    environment:
+      # The app loads native addons (e.g. fx-native) which depend on WebKitGTK.
+      # In classic confinement the dynamic loader may not automatically search
+      # the snap's multi-arch library directories, so include them explicitly.
+      LD_LIBRARY_PATH: $SNAP/usr/lib:$SNAP/usr/lib/aarch64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/lib:$SNAP/lib/aarch64-linux-gnu:$SNAP/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 lint:
   ignore:
     - library:
