@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 
 import { html } from 'htm/react'
+import { AUTO_LOCK_ENABLED } from 'pearpass-lib-constants'
 
+import { AutoLockConfiguration } from './SettingsAutoLockConfiguration'
 import { SettingsBlindPeersSection } from './SettingsBlindPeersSection'
 import { SwitchList, SwitchWrapper } from './styles'
 import { CardSingleSetting } from '../../../components/CardSingleSetting'
@@ -108,6 +110,8 @@ export const SettingsAdvancedTab = () => {
           stretch=${false}
           setRules=${handleSetRules}
         />
+
+        ${AUTO_LOCK_ENABLED ? html`<${AutoLockConfiguration} />` : null}
       <//>
     <//>
 

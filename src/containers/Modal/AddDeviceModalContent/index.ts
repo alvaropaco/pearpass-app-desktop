@@ -212,13 +212,13 @@ export const AddDeviceModalContent = () => {
             $active=${!scanQRStep}
             onClick=${() => setScanQRStep(false)}
           >
-            ${t('Load a vault')}
+            ${t('Import vault')}
           <//>
         <//>
         ${scanQRStep
           ? html`
               <${QRCodeSection}>
-                <${QRCodeText}> ${t('Scan this QR code')} <//>
+                <${QRCodeText}> ${t('Scan this QR code while in the PearPass App')} <//>
 
                 <${QRCode}
                   style=${{ width: '200px', height: '200px' }}
@@ -228,7 +228,7 @@ export const AddDeviceModalContent = () => {
 
               <${BackgroundSection}>
                 <${ExpireText}>
-                  ${t('This link will expire in')}
+                  ${t('Expires in')}
                   <${ScanQRExpireTimer} />
                 <//>
 
@@ -249,7 +249,7 @@ export const AddDeviceModalContent = () => {
                 <${QRCodeCopyWrapper}>
                   <${QRCodeCopy}>
                     <${QRCodeText}>
-                      ${t('Copy this vault key to your device')}
+                      ${t('Copy vault key')}
                     <//>
                     <${CopyIcon} color=${colors.primary400.mode1} />
                   <//>
@@ -261,7 +261,7 @@ export const AddDeviceModalContent = () => {
 
               <${AlertBox}
                 message=${t(
-                  'Caution: You’re generating a secure invitation to sync another device with your vault. Treat this invite with the same confidentiality as your password.'
+                  'Keep this code private. Anyone with it can connect a device to your vault.'
                 )}
               />
             `
