@@ -1,11 +1,15 @@
 [Desktop Entry]
 Version=1.0
 Name=PearPass
+GenericName=Password Manager
+Comment=A secure, decentralized and fully local password manager
 Exec=pearpass %U
 Type=Application
-Icon=${SNAP}/meta/gui/pearpass.png
-Comment=A secure, decentralized and fully local password manager
-Categories=Utility;
+Icon=${SNAP}/usr/share/icons/hicolor/256x256/apps/pearpass.png
+Categories=Utility;Security;
+Keywords=password;manager;vault;security;credentials;encryption;sync;decentralized;
 Terminal=false
 StartupNotify=true
+StartupWMClass=PearPass
+MimeType=x-scheme-handler/pearpass;
 X-GNOME-UsesNotifications=true

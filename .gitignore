@@ -19,5 +19,36 @@ assets/.DS_Store
 
 dist
 
-# Snapcraft
+# Build output
+build/
+*.AppImage
+*.flatpak
+*.snap
+
+# Snapcraft build artifacts
+snapcraft/.craft/
+snapcraft/parts/
+snapcraft/prime/
+snapcraft/stage/
+snapcraft/*.snap
 .snapcraft.yaml.swp
+
+# Flatpak build artifacts
+flatpak/.flatpak-builder/
+flatpak/build-dir/
+flatpak/repo/
+flatpak/icons/
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# VSCode
+.vscode/
+
+# Test coverage
+coverage/
+
+# TypeScript build info
+*.tsbuildinfo

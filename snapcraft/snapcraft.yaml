@@ -1,55 +1,151 @@
 name: pearpass
 base: core24
-version: "1.0.1"
+version: "1.2.0"
 title: PearPass
 summary: A secure, decentralized and fully local password manager
-description: A secure, decentralized and fully local password manager
+description: |
+  PearPass is a secure, decentralized password manager powered by Pear Runtime.
+
+  Features:
+  - Secure password, identity, credit card, notes, and custom fields storage
+  - Cross-device and cross-platform synchronization via P2P
+  - Offline access to your credentials
+  - Strong encryption for data security
+  - Password strength analysis
+  - Random password generator
+  - Browser extension integration for Chrome, Edge, and Chromium
+  - Fully decentralized - your data stays on your devices
+
 grade: stable
 license: Apache-2.0
 website: https://pass.pears.com
+contact: https://github.com/tetherto/pearpass-app-desktop/issues
+issues: https://github.com/tetherto/pearpass-app-desktop/issues
+source-code: https://github.com/tetherto/pearpass-app-desktop
 confinement: strict
+
+# Custom plugs for Pear Runtime and native messaging
 plugs:
   dot-config-pear:
     interface: personal-files
     write:
       - $HOME/.config/pear
+
+  # Native messaging host directories for browser extension
+  chrome-native-messaging:
+    interface: personal-files
+    write:
+      - $HOME/.config/google-chrome/NativeMessagingHosts
+
+  chromium-native-messaging:
+    interface: personal-files
+    write:
+      - $HOME/.config/chromium/NativeMessagingHosts
+
+  edge-native-messaging:
+    interface: personal-files
+    write:
+      - $HOME/.config/microsoft-edge/NativeMessagingHosts
+
   shmem:
     interface: shared-memory
     private: true
+
 apps:
   pearpass:
     extensions: [gnome]
-    command: assets/usr/bin/pearpass
+    command: usr/bin/pearpass
     common-id: com.pears.pass
+    desktop: usr/share/applications/pearpass.desktop
     plugs:
       - home
       - network
+      - network-bind
       - network-observe
-      - system-files
+      - audio-playback
       - dot-config-pear
+      - chrome-native-messaging
+      - chromium-native-messaging
+      - edge-native-messaging
+      - shmem
+      - unity7
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - gsettings
+      - opengl
+    environment:
+      # Ensure Pear Runtime can find its config
+      PEAR_CONFIG_DIR: $HOME/.config/pear
+      # For P2P networking
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
+      # Disable libproxy to avoid missing libpxbackend-1.0.so errors
+      # Use local VFS only (no gvfs/proxy modules)
+      GIO_USE_VFS: local
+      # Force dummy proxy resolver instead of libproxy
+      GIO_USE_PROXY_RESOLVER: dummy
+      # Prevent GIO from loading external modules
+      GIO_EXTRA_MODULES: /nonexistent
+
+# Support both amd64 and arm64 architectures
 platforms:
   amd64:
-    build-on: amd64
-    build-for: amd64
+    build-on: [amd64]
+    build-for: [amd64]
+  arm64:
+    build-on: [arm64]
+    build-for: [arm64]
+
 parts:
-  local_files:
+  # Local assets (icons, desktop file, etc.)
+  local-assets:
     plugin: dump
     source: .
     source-type: local
-  remote_files:
-    after: [local_files]
-    plugin: dump
-    source:
-      - to amd64: "https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz"
-    source-type: tar
     organize:
-      pearpass: assets/usr/bin/pearpass
-  execstack:
-    after: [remote_files]
-    build-packages: [execstack]
+      assets/icon.png: usr/share/icons/hicolor/256x256/apps/pearpass.png
+      snap/gui/pearpass.desktop: usr/share/applications/pearpass.desktop
+    prime:
+      - usr/share/icons/hicolor/256x256/apps/pearpass.png
+      - usr/share/applications/pearpass.desktop
+
+  # Pre-built binary from local build
+  pearpass-binary:
+    after: [local-assets]
+    plugin: dump
+    source: ../build
+    source-type: local
+    override-build: |
+      craftctl default
+      # Extract the AppImage to get the binary
+      chmod +x PearPass-Desktop-Linux-x64-v*.AppImage
+      ./PearPass-Desktop-Linux-x64-v*.AppImage --appimage-extract
+      # Copy the actual binary (pear-pass)
+      cp squashfs-root/usr/bin/pear-pass ${CRAFT_PART_INSTALL}/pearpass
+      chmod +x ${CRAFT_PART_INSTALL}/pearpass
+    organize:
+      pearpass: usr/bin/pearpass
+    prime:
+      - usr/bin/pearpass
+
+  # Fix executable stack flags (security hardening)
+  execstack-fix:
+    after: [pearpass-binary]
+    plugin: nil
+    build-packages:
+      - execstack
+    override-prime: |
+      craftctl default
+      # Clear executable stack flag for security
+      if [[ -f usr/bin/pearpass ]]; then
+        execstack -c usr/bin/pearpass 2>/dev/null || true
+      fi
+
+  # Ensure proper permissions
+  permissions:
+    after: [execstack-fix]
     plugin: nil
     override-prime: |
-      if [[ $CRAFT_ARCH_BUILD_FOR = amd64 ]]
-      then
-        execstack -c assets/usr/bin/pearpass
-      fi
+      craftctl default
+      chmod 755 usr/bin/pearpass 2>/dev/null || true
