@@ -2,7 +2,7 @@
 Name=PearPass
 GenericName=Password Manager
 Comment=A secure, decentralized and fully local password manager
-Exec=pearpass-wrapper %U
+Exec=pear-pass %U
 Icon=com.pear.pass
 Terminal=false
 Type=Application

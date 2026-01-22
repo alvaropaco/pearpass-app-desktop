@@ -23,8 +23,11 @@ contact: https://github.com/tetherto/pearpass-app-desktop/issues
 issues: https://github.com/tetherto/pearpass-app-desktop/issues
 source-code: https://github.com/tetherto/pearpass-app-desktop
 confinement: strict
-
-# Custom plugs for Pear Runtime and native messaging
+layout:
+  /usr/lib/aarch64-linux-gnu/webkitgtk-6.0:
+    bind: $SNAP/usr/lib/aarch64-linux-gnu/webkitgtk-6.0
+  /usr/lib/x86_64-linux-gnu/webkitgtk-6.0:
+    bind: $SNAP/usr/lib/x86_64-linux-gnu/webkitgtk-6.0
 plugs:
   dot-config-pear:
     interface: personal-files
@@ -54,15 +57,13 @@ plugs:
 apps:
   pearpass:
     extensions: [gnome]
-    command: usr/bin/pearpass
+    command: usr/bin/pear-pass
     common-id: com.pears.pass
-    desktop: usr/share/applications/pearpass.desktop
     plugs:
       - home
       - network
       - network-bind
       - network-observe
-      - audio-playback
       - dot-config-pear
       - chrome-native-messaging
       - chromium-native-messaging
@@ -76,76 +77,64 @@ apps:
       - gsettings
       - opengl
     environment:
+      LD_LIBRARY_PATH: $SNAP/usr/lib:$LD_LIBRARY_PATH
       # Ensure Pear Runtime can find its config
       PEAR_CONFIG_DIR: $HOME/.config/pear
       # For P2P networking
       NODE_OPTIONS: "--dns-result-order=ipv4first"
       # Disable libproxy to avoid missing libpxbackend-1.0.so errors
-      # Use local VFS only (no gvfs/proxy modules)
       GIO_USE_VFS: local
-      # Force dummy proxy resolver instead of libproxy
       GIO_USE_PROXY_RESOLVER: dummy
-      # Prevent GIO from loading external modules
       GIO_EXTRA_MODULES: /nonexistent
 
 # Support both amd64 and arm64 architectures
 platforms:
   amd64:
-    build-on: [amd64]
-    build-for: [amd64]
+    build-on: amd64
+    build-for: amd64
   arm64:
-    build-on: [arm64]
-    build-for: [arm64]
+    build-on: arm64
+    build-for: arm64
 
 parts:
   # Local assets (icons, desktop file, etc.)
   local-assets:
     plugin: dump
-    source: .
+    source: assets
     source-type: local
     organize:
-      assets/icon.png: usr/share/icons/hicolor/256x256/apps/pearpass.png
+      icon.png: usr/share/icons/hicolor/256x256/apps/pearpass.png
       snap/gui/pearpass.desktop: usr/share/applications/pearpass.desktop
     prime:
       - usr/share/icons/hicolor/256x256/apps/pearpass.png
       - usr/share/applications/pearpass.desktop
 
-  # Pre-built binary from local build
+  # Pre-built binary from CDN (arm64 uses local file until CDN is updated with complete archive)
   pearpass-binary:
     after: [local-assets]
     plugin: dump
-    source: ../build
-    source-type: local
-    override-build: |
-      craftctl default
-      # Extract the AppImage to get the binary
-      chmod +x PearPass-Desktop-Linux-x64-v*.AppImage
-      ./PearPass-Desktop-Linux-x64-v*.AppImage --appimage-extract
-      # Copy the actual binary (pear-pass)
-      cp squashfs-root/usr/bin/pear-pass ${CRAFT_PART_INSTALL}/pearpass
-      chmod +x ${CRAFT_PART_INSTALL}/pearpass
+    source:
+      - to amd64: "https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz"
+      - to arm64: "https://static.tether.dev/pearpass/PearPass.linux.arm64.bin.tar.gz"
+    source-type: tar
     organize:
-      pearpass: usr/bin/pearpass
-    prime:
-      - usr/bin/pearpass
+      pearpass: usr/bin/pear-pass
+      lib: usr/lib
+      pear-pass: usr/share/pear-pass
 
-  # Fix executable stack flags (security hardening)
-  execstack-fix:
+  # WebKitGTK 6.0 (not included in gnome-46-2404 content snap)
+  webkit:
+    plugin: nil
+    stage-packages:
+      - libwebkitgtk-6.0-4
+
+  # Fix executable stack flags (security hardening) - only needed for amd64
+  execstack:
     after: [pearpass-binary]
     plugin: nil
     build-packages:
       - execstack
     override-prime: |
-      craftctl default
-      # Clear executable stack flag for security
-      if [[ -f usr/bin/pearpass ]]; then
-        execstack -c usr/bin/pearpass 2>/dev/null || true
+      if [[ $CRAFT_ARCH_BUILD_FOR = amd64 ]]; then
+        execstack -c usr/bin/pear-pass 2>/dev/null || true
       fi
-
-  # Ensure proper permissions
-  permissions:
-    after: [execstack-fix]
-    plugin: nil
-    override-prime: |
-      craftctl default
-      chmod 755 usr/bin/pearpass 2>/dev/null || true

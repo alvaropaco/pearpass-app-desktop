@@ -1,120 +1,64 @@
 app-id: com.pear.pass
 runtime: org.gnome.Platform
-runtime-version: '48'
+runtime-version: '49'
 sdk: org.gnome.Sdk
-command: pearpass-wrapper
-
-# Finish args define the sandbox permissions
+command: pear-pass
 finish-args:
-  # X11 + Wayland support
+  - --share=ipc
   - --socket=x11
   - --socket=wayland
-  - --share=ipc
-
-  # GPU acceleration for UI rendering
-  - --device=dri
-  # Allow all devices for Pear runtime
-  - --device=all
-
-  # Network access for P2P sync
+  - --socket=pulseaudio
   - --share=network
-
-  # Access to user home directory for vault storage
+  - --device=dri
   - --filesystem=home
-
-  # Pear Runtime configuration directory
-  - --filesystem=~/.config/pear:create
-
-  # Native messaging for browser extension integration
-  - --filesystem=~/.config/google-chrome/NativeMessagingHosts:create
-  - --filesystem=~/.config/chromium/NativeMessagingHosts:create
-  - --filesystem=~/.config/microsoft-edge/NativeMessagingHosts:create
-
-  # D-Bus access for desktop integration
+  - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.kde.StatusNotifierWatcher
-  - --talk-name=org.freedesktop.secrets
-
-  # Allow session bus access for D-Bus
-  - --socket=session-bus
-
-  # Shared memory for IPC
-  - --env=TMPDIR=/var/tmp
-
-  # Allow host filesystem access (needed for Pear Runtime)
-  - --filesystem=host
-
-  # System bus access (might be needed by some features)
-  - --socket=system-bus
-
-build-options:
-  # Disable stripping - the Pear runtime binary must not be stripped
-  no-debuginfo: true
-  strip: false
+  - --own-name=org.kde.*
 
 modules:
-  # Main application module - uses pre-built binary from local AppImage
   - name: pearpass
     buildsystem: simple
-    build-options:
-      # Ensure no stripping happens for this module
-      no-debuginfo: true
-      strip: false
     build-commands:
-      # Extract binary from AppImage
-      - chmod +x PearPass.AppImage
-      - ./PearPass.AppImage --appimage-extract
-
-      # Install the binary (v1.1.0 has simpler structure with single binary)
-      - mkdir -p ${FLATPAK_DEST}/usr/bin
-      - install -Dm755 squashfs-root/usr/bin/pearpass ${FLATPAK_DEST}/usr/bin/pearpass
-
-      # Create wrapper script with AppImage environment variables
-      - mkdir -p ${FLATPAK_DEST}/bin
-      - |
-        cat > ${FLATPAK_DEST}/bin/pearpass-wrapper << 'EOF'
-        #!/bin/bash
-        # Set AppImage environment variables that the Pear runtime expects
-        export APPIMAGE="/app/usr/bin/pearpass"
-        export APPDIR="/app/usr"
-        export OWD="${HOME}"
-        exec /app/usr/bin/pearpass "$@"
-        EOF
-      - chmod +x ${FLATPAK_DEST}/bin/pearpass-wrapper
-
-      # Install desktop file
+      # Install binary (must be named pear-pass for Bare runtime to find app.bundle)
+      - install -Dm755 pearpass ${FLATPAK_DEST}/bin/pear-pass
+      # Install native libraries (arm64 archive has lib/ folder)
+      - if [ -d lib ]; then mkdir -p ${FLATPAK_DEST}/lib && install -Dm755 lib/*.so ${FLATPAK_DEST}/lib/; fi
+      # Install app bundle (arm64 archive has pear-pass/ folder)
+      - if [ -d pear-pass ]; then mkdir -p ${FLATPAK_DEST}/share/pear-pass && cp -r pear-pass/* ${FLATPAK_DEST}/share/pear-pass/; fi
+      # For arm64 - install native libs and app.bundle from flat extraction
+      - if [ -f app.bundle ]; then mkdir -p ${FLATPAK_DEST}/share/pear-pass && cp app.bundle ${FLATPAK_DEST}/share/pear-pass/; fi
+      - if ls lib*.so 1>/dev/null 2>&1; then mkdir -p ${FLATPAK_DEST}/lib && cp lib*.so ${FLATPAK_DEST}/lib/; fi
+      # Install desktop integration files
       - install -Dm644 com.pear.pass.desktop ${FLATPAK_DEST}/share/applications/com.pear.pass.desktop
-
-      # Install metainfo
       - install -Dm644 com.pear.pass.metainfo.xml ${FLATPAK_DEST}/share/metainfo/com.pear.pass.metainfo.xml
-
-      # Install icons at various sizes
-      - install -Dm644 icon-256.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/com.pear.pass.png
-      - install -Dm644 icon-128.png ${FLATPAK_DEST}/share/icons/hicolor/128x128/apps/com.pear.pass.png
-      - install -Dm644 icon-64.png ${FLATPAK_DEST}/share/icons/hicolor/64x64/apps/com.pear.pass.png
-      - install -Dm644 icon-48.png ${FLATPAK_DEST}/share/icons/hicolor/48x48/apps/com.pear.pass.png
-
+      - install -Dm644 icon.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/com.pear.pass.png
+    build-options:
+      env:
+        LD_LIBRARY_PATH: /app/lib
     sources:
-      # Local AppImage (using v1.1.0 - v1.2.0 has a crash bug)
-      - type: file
-        path: ../build/PearPass-Desktop-Linux-x64-v1.1.0.AppImage
-        dest-filename: PearPass.AppImage
-
+      # amd64 (x86_64) binary
+      - type: archive
+        only-arches:
+          - x86_64
+        url: https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz
+        sha256: 1f19cdebb9f3a8941646076fb48562aebe2f900223efc38630f5bce9ad914062
+        dest-filename: pearpass-archive.tar.gz
+      # arm64 (aarch64) binary
+      - type: archive
+        only-arches:
+          - aarch64
+        url: https://static.tether.dev/pearpass/PearPass.linux.arm64.bin.tar.gz
+        sha256: c0c31d43e31de85f60a0d3aab5fef29c68970616430354f44828bc98b5a72978
+        strip-components: 0
       # Desktop file
       - type: file
         path: com.pear.pass.desktop
-
-      # Metainfo
+      # Metainfo file
       - type: file
         path: com.pear.pass.metainfo.xml
-
-      # Icons (need to be generated from source icon)
+      # Application icon (resized to 512x512 for flatpak)
       - type: file
-        path: icons/icon-256.png
-      - type: file
-        path: icons/icon-128.png
-      - type: file
-        path: icons/icon-64.png
-      - type: file
-        path: icons/icon-48.png
+        path: icon-512.png
+        dest-filename: icon.png
 
