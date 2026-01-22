@@ -173,6 +173,10 @@ export class NativeMessagingIPCServer {
       'recordFailedMasterPassword',
       encryptionHandlers.recordFailedMasterPassword.bind(encryptionHandlers)
     )
+    this.secureMethodRegistry.register(
+      'resetFailedAttempts',
+      encryptionHandlers.resetFailedAttempts.bind(encryptionHandlers)
+    )
 
     // Vault methods
     this.secureMethodRegistry.register(
