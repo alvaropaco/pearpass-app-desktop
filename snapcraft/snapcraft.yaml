@@ -22,60 +22,18 @@ website: https://pass.pears.com
 contact: https://github.com/tetherto/pearpass-app-desktop/issues
 issues: https://github.com/tetherto/pearpass-app-desktop/issues
 source-code: https://github.com/tetherto/pearpass-app-desktop
-confinement: strict
-layout:
-  /usr/lib/aarch64-linux-gnu/webkitgtk-6.0:
-    bind: $SNAP/usr/lib/aarch64-linux-gnu/webkitgtk-6.0
-  /usr/lib/x86_64-linux-gnu/webkitgtk-6.0:
-    bind: $SNAP/usr/lib/x86_64-linux-gnu/webkitgtk-6.0
-plugs:
-  dot-config-pear:
-    interface: personal-files
-    write:
-      - $HOME/.config/pear
 
-  # Native messaging host directories for browser extension
-  chrome-native-messaging:
-    interface: personal-files
-    write:
-      - $HOME/.config/google-chrome/NativeMessagingHosts
-
-  chromium-native-messaging:
-    interface: personal-files
-    write:
-      - $HOME/.config/chromium/NativeMessagingHosts
-
-  edge-native-messaging:
-    interface: personal-files
-    write:
-      - $HOME/.config/microsoft-edge/NativeMessagingHosts
-
-  shmem:
-    interface: shared-memory
-    private: true
+# Classic confinement: no sandbox, full system access.
+# This allows the app to write native-messaging manifests to ~/.config/*/NativeMessagingHosts
+# without needing personal-files plugs or manual snap connect commands.
+confinement: classic
 
 apps:
   pearpass:
-    extensions: [gnome]
-    command: usr/bin/pear-pass
+    # No extensions - classic confinement does not support extensions.
+    # Wrapper to restore $HOME to the real home directory (safety measure).
+    command: usr/bin/pearpass-launch
     common-id: com.pears.pass
-    plugs:
-      - home
-      - network
-      - network-bind
-      - network-observe
-      - dot-config-pear
-      - chrome-native-messaging
-      - chromium-native-messaging
-      - edge-native-messaging
-      - shmem
-      - unity7
-      - desktop
-      - desktop-legacy
-      - wayland
-      - x11
-      - gsettings
-      - opengl
     environment:
       LD_LIBRARY_PATH: $SNAP/usr/lib:$LD_LIBRARY_PATH
       # Ensure Pear Runtime can find its config
@@ -109,9 +67,23 @@ parts:
       - usr/share/icons/hicolor/256x256/apps/pearpass.png
       - usr/share/applications/pearpass.desktop
 
+  # Launch wrapper (fixes $HOME under snap so native-messaging works)
+  launcher:
+    plugin: dump
+    # snapcraft.yaml lives in ./snapcraft, so local sources are relative to this directory.
+    source: launcher
+    source-type: local
+    organize:
+      pearpass-launch: usr/bin/pearpass-launch
+    override-prime: |
+      craftctl default
+      chmod 0755 "$CRAFT_PRIME/usr/bin/pearpass-launch"
+    prime:
+      - usr/bin/pearpass-launch
+
   # Pre-built binary from CDN (arm64 uses local file until CDN is updated with complete archive)
   pearpass-binary:
-    after: [local-assets]
+    after: [local-assets, launcher]
     plugin: dump
     source:
       - to amd64: "https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz"
@@ -122,7 +94,7 @@ parts:
       lib: usr/lib
       pear-pass: usr/share/pear-pass
 
-  # WebKitGTK 6.0 (not included in gnome-46-2404 content snap)
+  # WebKitGTK 6.0 - bundled for classic confinement since we can't rely on content snaps
   webkit:
     plugin: nil
     stage-packages:

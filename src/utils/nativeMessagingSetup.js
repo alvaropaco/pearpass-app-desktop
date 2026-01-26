@@ -11,6 +11,14 @@ import {
 
 import { logger } from './logger'
 
+/**
+ * Snap sets HOME to SNAP_USER_DATA (e.g. ~/snap/<name>/current). That breaks any
+ * integration that expects files to live under the user's real $HOME.
+ *
+ * `SNAP_REAL_HOME` is provided by snapd and points to the actual home directory.
+ */
+const getRealHomeDir = () => process.env.SNAP_REAL_HOME || os.homedir()
+
 const promisify =
   (fn) =>
   (...args) =>
@@ -155,7 +163,7 @@ cd /d "${bridgePath}"
  */
 export const getNativeMessagingLocations = () => {
   const platform = os.platform()
-  const home = os.homedir()
+  const home = getRealHomeDir()
   const manifestFile = `${MANIFEST_NAME}.json`
   let manifestPaths = []
   let registryKeys = []
@@ -386,10 +394,13 @@ export const setupNativeMessaging = async () => {
     const { manifestPaths, registryKeys } = getNativeMessagingLocations()
 
     // Write manifest to all relevant paths
+    let wroteManifestCount = 0
     for (const manifestPath of manifestPaths) {
       try {
         await fs.mkdir(path.dirname(manifestPath), { recursive: true })
         await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2))
+
+        wroteManifestCount++
 
         if (platform !== 'win32') {
           await fs.chmod(manifestPath, 0o644)
@@ -400,6 +411,14 @@ export const setupNativeMessaging = async () => {
           `Failed to write manifest at ${manifestPath}: ${err.message}`
         )
       }
+    }
+
+    // On Unix platforms, if we couldn't write any manifest file, the browser will
+    // never be able to discover the native host.
+    if (platform !== 'win32' && wroteManifestCount === 0) {
+      throw new Error(
+        'Failed to write native messaging manifest. If running as a snap, ensure the snap has permission to write to ~/.config/*/NativeMessagingHosts and that SNAP_REAL_HOME is available.'
+      )
     }
 
     // Windows Registry Setup

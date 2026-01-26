@@ -37,6 +37,10 @@ global.Pear = {
 // Helper to reset mocks
 const resetMocks = () => {
   jest.clearAllMocks()
+
+  // Ensure each test starts without snap-specific overrides unless explicitly set.
+  delete process.env.SNAP_REAL_HOME
+
   os.platform.mockReturnValue('linux')
   os.homedir.mockReturnValue('/home/testuser')
   os.arch.mockReturnValue('x64')
@@ -168,6 +172,15 @@ describe('getNativeMessagingLocations', () => {
     expect(locations.manifestPaths[1]).toContain('chromium')
     expect(locations.manifestPaths[2]).toContain('microsoft-edge')
     expect(locations.registryKeys).toHaveLength(0)
+  })
+
+  it('should prefer SNAP_REAL_HOME over os.homedir (snap)', () => {
+    os.platform.mockReturnValue('linux')
+    os.homedir.mockReturnValue('/home/snapuser/snap/pearpass/current')
+    process.env.SNAP_REAL_HOME = '/home/realuser'
+
+    const locations = getNativeMessagingLocations()
+    expect(locations.manifestPaths[0]).toContain('/home/realuser/.config')
   })
 
   it('should return correct paths and registry keys for Windows', () => {

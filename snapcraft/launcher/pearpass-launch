@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+# Snap sets HOME to $SNAP_USER_DATA (e.g. ~/snap/<name>/current). That breaks browser
+# native-messaging integration because Chrome/Chromium/Edge look for manifests in
+# the *real* home directory (~/.config/*/NativeMessagingHosts).
+#
+# We switch HOME to SNAP_REAL_HOME when available so os.homedir() inside the app
+# resolves to the user's actual home.
+if [ -n "${SNAP_REAL_HOME:-}" ]; then
+  export HOME="$SNAP_REAL_HOME"
+fi
+
+# Ensure Pear Runtime uses the same (real) home for config when running under snap.
+export PEAR_CONFIG_DIR="$HOME/.config/pear"
+
+# Pear Runtime looks for platform files in $SNAP_USER_COMMON/pear, but we want it
+# to use the real home directory. Create a symlink if it doesn't exist.
+if [ -n "${SNAP_USER_COMMON:-}" ] && [ -n "${HOME:-}" ]; then
+  PEAR_SNAP_DIR="$SNAP_USER_COMMON/pear"
+  PEAR_REAL_DIR="$HOME/.config/pear"
+
+  # Only create symlink if the snap pear dir doesn't exist or isn't already a symlink
+  if [ ! -L "$PEAR_SNAP_DIR" ]; then
+    # Remove existing directory if present (first run migration)
+    rm -rf "$PEAR_SNAP_DIR" 2>/dev/null || true
+    # Ensure parent directory exists
+    mkdir -p "$SNAP_USER_COMMON"
+    # Create symlink to real pear config
+    ln -sf "$PEAR_REAL_DIR" "$PEAR_SNAP_DIR"
+  fi
+fi
+
+exec "$SNAP/usr/bin/pear-pass" "$@"
+
