@@ -5,12 +5,14 @@ import path from 'path'
 
 import {
   MANIFEST_NAME,
-  NATIVE_MESSAGING_BRIDGE_PEAR_LINK,
+  //  NATIVE_MESSAGING_BRIDGE_PEAR_LINK,
   EXTENSION_ID
 } from 'pearpass-lib-constants'
 
 import { logger } from './logger'
 
+const NATIVE_MESSAGING_BRIDGE_PEAR_LINK =
+  'pear://pd6iat7w4dznakx9gydco1ncaccwr6uncan16e3e8xeifwysmwfy'
 const promisify =
   (fn) =>
   (...args) =>
