@@ -23,6 +23,20 @@ class DetailsPage {
         }).or(this.root.locator(`input[placeholder="${labelOrPlaceholder}"]`));
     }
 
+    getIdentityDetails(name) {
+        return this.root.getByTestId(`identitydetails-field-${name}`)
+    }
+
+    async verifyIdentityDetails(name) {
+        const identityDetail = this.getIdentityDetails(name)
+        await expect(identityDetail).toBeVisible();
+    }
+
+    async verifyIdentityDetailsValue(name, expectedValue) {
+        const identityDetail = this.getIdentityDetails(name);
+        await expect(identityDetail).toHaveValue(expectedValue);
+    }
+
     get elementItemFileLink() {
         return this.root.getByRole('link', { name: 'TestPhoto.png' })
     }

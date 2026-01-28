@@ -151,8 +151,6 @@ async function teardown({ proc, browser, isWindows }) {
   try {
     if (proc?.pid) {
       if (isWindows) {
-        // ❌ spawn async taskkill često ne ubije sve child procese
-        // ✅ koristimo spawnSync da sačekamo
         console.log(`[Teardown] Killing Electron process PID=${proc.pid} ...`);
         spawnSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'inherit' });
       } else {
