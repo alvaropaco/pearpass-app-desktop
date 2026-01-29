@@ -299,71 +299,7 @@ test.describe('Creating WiFi Item', () => {
 
   })
 
-  // test('Upload file to WiFi Items', async ({ page }) => {
-
-  //   await test.step('VERIFY WIFI ELEMENT CREATED', async () => {
-  //     await mainPage.verifyElementTitle('WiFi Title')
-  //   })
-
-  //   await test.step('OPEN ELEMENT', async () => {
-  //     await mainPage.openElementDetails()
-  //   })
-
-  //   await test.step('EDIT ELEMENT DETAILS', async () => {
-  //     await detailsPage.editElement()
-  //   })
-
-  //   await test.step('CLICK LOAD FILE BUTTON', async () => {
-  //     await createOrEditPage.clickOnCreateOrEditButton('loadfile')
-  //   })
-
-  //   await test.step('UPLOAD FILE', async () => {
-  //     await createOrEditPage.uploadFile()
-  //   })
-
-  //   /**
-  //  * @qase.id PAS-901
-  //  * @description It is possible to view uploaded files in "Edit" mode
-  //  */
-  //   await test.step('VERIFY UPLOADED FILE IS VISIBLE INSIDE WIFI ITEMS', async () => {
-  //     await createOrEditPage.verifyUploadedFileIsVisible()
-  //   })
-
-  //   await test.step('OPEN UPLOADED FILE', async () => {
-  //     await createOrEditPage.clickOnUploadedFile()
-  //   })
-
-  //   await test.step('VERIFY UPLOADED IMAGE', async () => {
-  //     await createOrEditPage.verifyUploadedImageIsVisible()
-  //   })
-
-  //   await test.step('CLICK CLOSE (X) BUTTON', async () => {
-  //     await createOrEditPage.clickElementItemCloseButton()
-  //   })
-
-  //   await test.step('CLICK SAVE BUTTON', async () => {
-  //     await createOrEditPage.clickOnCreateOrEditButton('save')
-  //   })
-
-  //   /**
-  //  * @qase.id PAS-960
-  //  * @description It is possible to view uploaded files in "View" mode
-  //  */
-  //   await test.step('VERIFY UPLOADED FILE IS VISIBLE INSIDE WIFI ITEMS', async () => {
-  //     await detailsPage.verifyUploadedFileIsVisible()
-  //   })
-
-  //   await test.step('VERIFY UPLOADED FILE NOT VISIBLE', async () => {
-  //     await createOrEditPage.verifyUploadedImageIsNotVisible()
-  //   })
-
-  //   await test.step('EXIT TO LOGIN SCREEN', async () => {
-  //     await sideMenuPage.clickSidebarExitButton()
-  //   })
-
-  // })
-
-  test('Deleted WiFi Items are not displayed in view/details mode ', async ({ page }) => {
+  test('Deleted WiFi Items are not displayed in view/details mode ', async () => {
 
     await test.step('VERIFY WIFI ELEMENT CREATED', async () => {
       await mainPage.verifyElementTitle('WiFi Title')
