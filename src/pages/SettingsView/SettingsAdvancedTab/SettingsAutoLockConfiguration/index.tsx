@@ -1,5 +1,5 @@
 import { html } from 'htm/react'
-import { AUTO_LOCK_TIMEOUT_OPTIONS, BE_AUTO_LOCK_ENABLED } from 'pearpass-lib-constants'
+import * as PearpassConstants from 'pearpass-lib-constants'
 import { useState } from 'react'
 import styled from 'styled-components'
 import { PopupMenu } from '../../../../components/PopupMenu'
@@ -40,10 +40,12 @@ const ContentWrapper = styled.div`
   gap: 2px;
 `
 
-export const TIMEOUT_OPTIONS = Object.values(AUTO_LOCK_TIMEOUT_OPTIONS)
+export const TIMEOUT_OPTIONS = Object.values(PearpassConstants.AUTO_LOCK_TIMEOUT_OPTIONS)
 
 export const AutoLockConfiguration = () => {
   const { t } = useTranslation()
+	// Backwards-compatible: older pearpass-lib-constants versions may not export this flag.
+	const beAutoLockEnabled = Boolean((PearpassConstants as any).BE_AUTO_LOCK_ENABLED)
 
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
 
@@ -98,7 +100,7 @@ export const AutoLockConfiguration = () => {
     'Inactivity is based on your interaction with Pearpass, not on device idle time.'
   )}
                   </li>
-                  ${BE_AUTO_LOCK_ENABLED && html`<li>
+				  ${beAutoLockEnabled && html`<li>
                     ${t(
     "On desktop and browser, Pearpass keeps your session aligned—activity in one helps keep the other unlocked while you're working. Mobile auto-lock is managed separately."
   )}
