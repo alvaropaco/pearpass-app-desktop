@@ -12,7 +12,7 @@
 #
 # Prerequisites:
 #   - flatpak-builder installed
-#   - org.freedesktop.Platform//24.08 and org.freedesktop.Sdk//24.08 runtimes
+#   - org.gnome.Platform//49 and org.gnome.Sdk//49 runtimes
 #   - ImageMagick (for icon generation)
 
 set -euo pipefail
@@ -81,15 +81,15 @@ check_prerequisites() {
         exit 1
     fi
 
-    # Check for required runtimes
-    if ! flatpak info org.freedesktop.Platform//24.08 &> /dev/null; then
-        log_warn "Installing org.freedesktop.Platform//24.08..."
-        flatpak install -y flathub org.freedesktop.Platform//24.08
+    # Check for required runtimes (org.gnome.Platform/Sdk version 49 as per manifest)
+    if ! flatpak info org.gnome.Platform//49 &> /dev/null; then
+        log_warn "Installing org.gnome.Platform//49..."
+        flatpak install -y flathub org.gnome.Platform//49
     fi
 
-    if ! flatpak info org.freedesktop.Sdk//24.08 &> /dev/null; then
-        log_warn "Installing org.freedesktop.Sdk//24.08..."
-        flatpak install -y flathub org.freedesktop.Sdk//24.08
+    if ! flatpak info org.gnome.Sdk//49 &> /dev/null; then
+        log_warn "Installing org.gnome.Sdk//49..."
+        flatpak install -y flathub org.gnome.Sdk//49
     fi
 
     log_info "Prerequisites satisfied."
