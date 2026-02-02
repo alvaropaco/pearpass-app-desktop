@@ -157,9 +157,10 @@ describe('getNativeMessagingLocations', () => {
     os.platform.mockReturnValue('darwin')
     const locations = getNativeMessagingLocations()
     expect(locations.platform).toBe('darwin')
-    expect(locations.manifestPaths).toHaveLength(2)
+    expect(locations.manifestPaths).toHaveLength(3)
     expect(locations.manifestPaths[0]).toContain('Google/Chrome')
     expect(locations.manifestPaths[1]).toContain('Microsoft Edge')
+    expect(locations.manifestPaths[2]).toContain('Chromium')
     expect(locations.registryKeys).toHaveLength(0)
   })
 
@@ -189,9 +190,10 @@ describe('getNativeMessagingLocations', () => {
     expect(locations.platform).toBe('win32')
     expect(locations.manifestPaths).toHaveLength(1)
     expect(locations.manifestPaths[0]).toContain('PearPass/NativeMessaging')
-    expect(locations.registryKeys).toHaveLength(2)
+    expect(locations.registryKeys).toHaveLength(3)
     expect(locations.registryKeys[0]).toContain('Google\\Chrome')
     expect(locations.registryKeys[1]).toContain('Microsoft\\Edge')
+    expect(locations.registryKeys[2]).toContain('Chromium')
   })
 
   it('should throw error for unsupported platform', () => {
@@ -217,8 +219,8 @@ describe('cleanupNativeMessaging', () => {
     os.platform.mockReturnValue('darwin')
     const result = await cleanupNativeMessaging()
     expect(result.success).toBe(true)
-    expect(result.message).toContain('Removed 2 manifest file')
-    expect(fs.unlink).toHaveBeenCalledTimes(2)
+    expect(result.message).toContain('Removed 3 manifest file')
+    expect(fs.unlink).toHaveBeenCalledTimes(3)
   })
 
   it('should remove manifest files and registry keys on Windows', async () => {
@@ -230,7 +232,7 @@ describe('cleanupNativeMessaging', () => {
     expect(result.success).toBe(true)
     expect(result.message).toContain('Removed 1 manifest file')
     expect(fs.unlink).toHaveBeenCalledTimes(1)
-    expect(execMock).toHaveBeenCalledTimes(2)
+    expect(execMock).toHaveBeenCalledTimes(3)
   })
 
   it('should handle ENOENT errors gracefully', async () => {
@@ -386,7 +388,7 @@ describe('setupNativeMessaging', () => {
     expect(result.message).toMatch(
       /Native messaging host installed successfully/
     )
-    expect(execMock).toHaveBeenCalledTimes(2)
+    expect(execMock).toHaveBeenCalledTimes(3)
   })
 
   it('should continue on partial manifest write failures', async () => {
