@@ -81,18 +81,58 @@ parts:
     prime:
       - usr/bin/pearpass-launch
 
-  # Pre-built binary from CDN (arm64 uses local file until CDN is updated with complete archive)
+  # Pre-built binary from GitHub releases AppImage
+  # Downloads AppImage, extracts it, and installs the contents
   pearpass-binary:
     after: [local-assets, launcher]
-    plugin: dump
-    source:
-      - to amd64: "https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz"
-      - to arm64: "https://static.tether.dev/pearpass/PearPass.linux.arm64.bin.tar.gz"
-    source-type: tar
-    organize:
-      pearpass: usr/bin/pear-pass
-      lib: usr/lib
-      pear-pass: usr/share/pear-pass
+    plugin: nil
+    build-packages:
+      - curl
+      - file
+    override-pull: |
+      set -eu
+
+      # Determine architecture-specific AppImage URL
+      # Using v1.3.0 release - update version when new releases are available
+      RELEASE_VERSION="1.3.0"
+      case "$CRAFT_ARCH_BUILD_FOR" in
+        amd64) ARCH="x64" ;;
+        arm64) ARCH="arm64" ;;
+        *) echo "Unsupported architecture: $CRAFT_ARCH_BUILD_FOR"; exit 1 ;;
+      esac
+
+      APPIMAGE_URL="https://github.com/tetherto/pearpass-app-desktop/releases/download/v${RELEASE_VERSION}/PearPass-Desktop-Linux-${ARCH}-v${RELEASE_VERSION}.AppImage"
+
+      echo "Downloading AppImage from: $APPIMAGE_URL"
+      curl -L -o PearPass.AppImage "$APPIMAGE_URL"
+      chmod +x PearPass.AppImage
+
+      echo "Extracting AppImage..."
+      ./PearPass.AppImage --appimage-extract
+
+      # Move extracted contents to source directory
+      mv squashfs-root/* .
+      rm -rf squashfs-root PearPass.AppImage
+    override-build: |
+      set -eu
+
+      # Install binary
+      mkdir -p "$CRAFT_PART_INSTALL/usr/bin"
+      cp -a "$CRAFT_PART_SRC/usr/bin/pear-pass" "$CRAFT_PART_INSTALL/usr/bin/"
+
+      # Install native libraries
+      mkdir -p "$CRAFT_PART_INSTALL/usr/lib"
+      cp -a "$CRAFT_PART_SRC/usr/lib/"*.so "$CRAFT_PART_INSTALL/usr/lib/" 2>/dev/null || true
+
+      # Install app bundle
+      mkdir -p "$CRAFT_PART_INSTALL/usr/share/pear-pass"
+      if [ -d "$CRAFT_PART_SRC/usr/share/pear-pass" ]; then
+        cp -a "$CRAFT_PART_SRC/usr/share/pear-pass/"* "$CRAFT_PART_INSTALL/usr/share/pear-pass/"
+      fi
+    prime:
+      - usr/bin/pear-pass
+      - usr/lib/*.so
+      - usr/share/pear-pass
 
   # WebKitGTK 6.0 - bundled for classic confinement since we can't rely on content snaps
   webkit:
