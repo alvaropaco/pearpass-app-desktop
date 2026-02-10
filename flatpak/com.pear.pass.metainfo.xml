@@ -62,6 +62,15 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.4.0" date="2025-06-01">
+      <description>
+        <p>New features and improvements:</p>
+        <ul>
+          <li>Aligned Flatpak and Snap builds to use AppImage-based packaging</li>
+          <li>Updated dependencies and stability improvements</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.0" date="2025-01-22">
       <description>
         <p>New features and improvements:</p>

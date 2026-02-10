@@ -20,15 +20,17 @@ modules:
   - name: pearpass
     buildsystem: simple
     build-commands:
+      # Extract AppImage
+      - chmod +x PearPass.AppImage
+      - ./PearPass.AppImage --appimage-extract
       # Install binary (must be named pear-pass for Bare runtime to find app.bundle)
-      - install -Dm755 pearpass ${FLATPAK_DEST}/bin/pear-pass
-      # Install native libraries (arm64 archive has lib/ folder)
-      - if [ -d lib ]; then mkdir -p ${FLATPAK_DEST}/lib && install -Dm755 lib/*.so ${FLATPAK_DEST}/lib/; fi
-      # Install app bundle (arm64 archive has pear-pass/ folder)
-      - if [ -d pear-pass ]; then mkdir -p ${FLATPAK_DEST}/share/pear-pass && cp -r pear-pass/* ${FLATPAK_DEST}/share/pear-pass/; fi
-      # For arm64 - install native libs and app.bundle from flat extraction
-      - if [ -f app.bundle ]; then mkdir -p ${FLATPAK_DEST}/share/pear-pass && cp app.bundle ${FLATPAK_DEST}/share/pear-pass/; fi
-      - if ls lib*.so 1>/dev/null 2>&1; then mkdir -p ${FLATPAK_DEST}/lib && cp lib*.so ${FLATPAK_DEST}/lib/; fi
+      - install -Dm755 squashfs-root/usr/bin/pear-pass ${FLATPAK_DEST}/bin/pear-pass
+      # Install native libraries
+      - mkdir -p ${FLATPAK_DEST}/lib && cp -a squashfs-root/usr/lib/*.so ${FLATPAK_DEST}/lib/ 2>/dev/null || true
+      # Install app bundle
+      - if [ -d squashfs-root/usr/share/pear-pass ]; then mkdir -p ${FLATPAK_DEST}/share/pear-pass && cp -r squashfs-root/usr/share/pear-pass/* ${FLATPAK_DEST}/share/pear-pass/; fi
+      # Cleanup extracted AppImage
+      - rm -rf squashfs-root PearPass.AppImage
       # Install desktop integration files
       - install -Dm644 com.pear.pass.desktop ${FLATPAK_DEST}/share/applications/com.pear.pass.desktop
       - install -Dm644 com.pear.pass.metainfo.xml ${FLATPAK_DEST}/share/metainfo/com.pear.pass.metainfo.xml
@@ -37,28 +39,27 @@ modules:
       env:
         LD_LIBRARY_PATH: /app/lib
     sources:
-      # amd64 (x86_64) binary
-      - type: archive
+      # AppImage from GitHub releases - x86_64
+      - type: file
         only-arches:
           - x86_64
-        url: https://static.tether.dev/pearpass/PearPass.linux.x64.bin.tar.gz
-        sha256: 1f19cdebb9f3a8941646076fb48562aebe2f900223efc38630f5bce9ad914062
-        dest-filename: pearpass-archive.tar.gz
-      # arm64 (aarch64) binary
-      - type: archive
+        url: https://github.com/tetherto/pearpass-app-desktop/releases/download/v1.4.0/PearPass-Desktop-Linux-x64-v1.4.0.AppImage
+        sha256: FIXME_X64_SHA256
+        dest-filename: PearPass.AppImage
+      # AppImage from GitHub releases - aarch64
+      - type: file
         only-arches:
           - aarch64
-        url: https://static.tether.dev/pearpass/PearPass.linux.arm64.bin.tar.gz
-        sha256: c0c31d43e31de85f60a0d3aab5fef29c68970616430354f44828bc98b5a72978
-        strip-components: 0
+        url: https://github.com/tetherto/pearpass-app-desktop/releases/download/v1.4.0/PearPass-Desktop-Linux-arm64-v1.4.0.AppImage
+        sha256: FIXME_ARM64_SHA256
+        dest-filename: PearPass.AppImage
       # Desktop file
       - type: file
         path: com.pear.pass.desktop
       # Metainfo file
       - type: file
         path: com.pear.pass.metainfo.xml
-      # Application icon (resized to 512x512 for flatpak)
+      # Application icon
       - type: file
         path: icon-512.png
         dest-filename: icon.png
-

@@ -3,12 +3,13 @@
 # Builds Snap packages for amd64 and/or arm64 architectures
 #
 # Usage:
-#   ./scripts/build-snap.sh [--arch amd64|arm64|all] [--install] [--destructive]
+#   ./scripts/build-snap.sh [--arch amd64|arm64|all] [--install] [--destructive] [--local <path>]
 #
 # Options:
 #   --arch         Target architecture (default: auto-detect current)
 #   --install      Install the built Snap for testing
 #   --destructive  Use destructive mode (no LXD container)
+#   --local        Path to local AppImage for staging builds
 #
 # Prerequisites:
 #   - snapcraft installed (sudo snap install snapcraft --classic)
@@ -25,6 +26,7 @@ BUILD_DIR="${PROJECT_ROOT}/build/snap"
 ARCH=""
 INSTALL=false
 DESTRUCTIVE=false
+LOCAL_APPIMAGE=""
 
 # Colors
 RED='\033[0;31m'
@@ -59,6 +61,10 @@ parse_args() {
             --destructive)
                 DESTRUCTIVE=true
                 shift
+                ;;
+            --local)
+                LOCAL_APPIMAGE="$2"
+                shift 2
                 ;;
             *)
                 log_error "Unknown option: $1"
@@ -141,6 +147,35 @@ install_snap() {
     fi
 }
 
+setup_local_appimage() {
+    local appimage_dir="${SNAPCRAFT_DIR}/appimage"
+    # Use .local extension to avoid *.AppImage gitignore rule
+    # (snapcraft respects .gitignore when transferring files to LXD)
+    local target="${appimage_dir}/PearPass.local"
+
+    # Clean up any existing staging file
+    rm -f "$target"
+
+    if [[ -n "$LOCAL_APPIMAGE" ]]; then
+        if [[ ! -f "$LOCAL_APPIMAGE" ]]; then
+            log_error "Local AppImage not found: $LOCAL_APPIMAGE"
+            exit 1
+        fi
+        log_info "Copying local AppImage for staging build..."
+        mkdir -p "$appimage_dir"
+        cp "$LOCAL_APPIMAGE" "$target"
+        log_info "Using local AppImage: $LOCAL_APPIMAGE"
+    fi
+}
+
+clean_local_appimage() {
+    local target="${SNAPCRAFT_DIR}/appimage/PearPass.local"
+    if [[ -f "$target" ]]; then
+        log_info "Cleaning up staging AppImage..."
+        rm -f "$target"
+    fi
+}
+
 clean_build() {
     log_info "Cleaning previous build artifacts..."
     cd "${SNAPCRAFT_DIR}"
@@ -150,6 +185,7 @@ clean_build() {
 main() {
     parse_args "$@"
     check_prerequisites
+    setup_local_appimage
 
     if [[ "$ARCH" == "all" ]]; then
         build_snap "amd64"
@@ -158,6 +194,8 @@ main() {
     else
         build_snap "$ARCH"
     fi
+
+    clean_local_appimage
 
     if [[ "$INSTALL" == true ]]; then
         install_snap
