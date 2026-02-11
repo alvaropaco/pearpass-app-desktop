@@ -275,6 +275,7 @@ export const CreateOrEditWifiModalContent = ({
                   label=${i18n._('File')}
                   additionalItems=${html`
                     <${ButtonSingleInput}
+                      testId="createoredit-button-deleteattachment"
                       startIcon=${DeleteIcon}
                       onClick=${() =>
                         setValue(
@@ -301,7 +302,7 @@ export const CreateOrEditWifiModalContent = ({
 
         <${FormGroup}>
           <${CreateCustomField}
-            testId="createoredit-createcustomfield"
+            testId="createoredit-button-createcustom"
             onCreateCustom=${(type) => addItem({ type: type, name: type })}
           />
         <//>

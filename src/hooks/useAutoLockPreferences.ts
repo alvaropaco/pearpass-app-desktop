@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 
 import { DEFAULT_AUTO_LOCK_TIMEOUT, AUTO_LOCK_ENABLED } from 'pearpass-lib-constants'
 import { LOCAL_STORAGE_KEYS } from '../constants/localStorage'
+import { applyAutoLockEnabled, applyAutoLockTimeout } from '../utils/autoLock'
 
 export const useAutoLockPreferences = () => {
-  const [isAutoLockEnabled, setIsAutoLockEnabledState] = useState<boolean>(() => {
+  const [autoLockEnabled, setAutoLockEnabledState] = useState<boolean>(() => {
     if (!AUTO_LOCK_ENABLED) {
       return false
     }
@@ -12,43 +13,78 @@ export const useAutoLockPreferences = () => {
     return stored !== 'false'
   })
 
-  const [timeoutMs, setTimeoutMsState] = useState<number>(() => {
+  const [timeoutMs, setTimeoutMsState] = useState<number | null>(() => {
     if (!AUTO_LOCK_ENABLED) {
       return DEFAULT_AUTO_LOCK_TIMEOUT
     }
     const stored = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTO_LOCK_TIMEOUT_MS)
+    if (stored === 'null') {
+      return null
+    }
     return stored ? Number(stored) : DEFAULT_AUTO_LOCK_TIMEOUT
   })
 
-  const setAutoLockEnabled = useCallback((enabled: boolean) => {
-    if (enabled) {
-      localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTO_LOCK_ENABLED)
-    } else {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AUTO_LOCK_ENABLED, 'false')
+  useEffect(() => {
+    const syncFromStorage = () => {
+      setAutoLockEnabledState(isAutoLockEnabled())
     }
-    setIsAutoLockEnabledState(enabled)
-    window.dispatchEvent(new Event('auto-lock-settings-changed'))
+
+    window.addEventListener('apply-auto-lock-enabled', syncFromStorage)
+  
+    return () => {
+      window.removeEventListener(
+        'apply-auto-lock-enabled',
+        syncFromStorage
+      )
+    }
   }, [])
 
-  const setTimeoutMs = useCallback((ms: number) => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.AUTO_LOCK_TIMEOUT_MS, String(ms))
-    setTimeoutMsState(ms)
-    window.dispatchEvent(new Event('auto-lock-settings-changed'))
+  
+  useEffect(() => {
+    const syncFromStorage = () => {
+      setTimeoutMsState(getAutoLockTimeoutMs())
+    }
+  
+    window.addEventListener('apply-auto-lock-timeout', syncFromStorage)
+  
+    return () => {
+      window.removeEventListener(
+        'apply-auto-lock-timeout',
+        syncFromStorage
+      )
+    }
   }, [])
+  
+  
+
+  const setAutoLockEnabled = useCallback((enabled: boolean) => {
+    applyAutoLockEnabled(enabled)
+    setAutoLockEnabledState(enabled)
+  }, [])
+
+
+  const setTimeoutMs = useCallback((ms: number | null) => {
+    applyAutoLockTimeout(ms)
+    setTimeoutMsState(ms)
+  }, [])
+
 
   return {
-    isAutoLockEnabled,
+    isAutoLockEnabled: autoLockEnabled,
     timeoutMs,
     setAutoLockEnabled,
     setTimeoutMs
   }
 }
 
-export function getAutoLockTimeoutMs(): number {
+export function getAutoLockTimeoutMs(): number | null {
   if (!AUTO_LOCK_ENABLED) {
     return DEFAULT_AUTO_LOCK_TIMEOUT
   }
   const stored = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTO_LOCK_TIMEOUT_MS)
+  if (stored === 'null') {
+    return null
+  }
   return stored ? Number(stored) : DEFAULT_AUTO_LOCK_TIMEOUT
 }
 

@@ -1,3 +1,5 @@
+import { SecurityErrorCodes } from '../../constants/securityErrors.js'
+import { createErrorWithCode } from '../../utils/createErrorWithCode.js'
 import { logger } from '../../utils/logger'
 
 /**
@@ -45,7 +47,9 @@ export class MethodRegistry {
         'METHOD-REGISTRY',
         `Available methods: ${availableMethods.join(', ')}`
       )
-      throw new Error(`UnknownMethod: ${methodName}`)
+      throw new Error(
+        createErrorWithCode(SecurityErrorCodes.UNKNOWN_METHOD, methodName)
+      )
     }
 
     const config = this.configs.get(methodName)
@@ -61,7 +65,9 @@ export class MethodRegistry {
       'decryptVaultKey',
       'vaultsInit',
       'recordFailedMasterPassword',
-      'getMasterPasswordStatus'
+      'getMasterPasswordStatus',
+      'resetFailedAttempts',
+      'initWithPassword'
     ]
     const statusMethods = [
       'encryptionGetStatus',
@@ -73,9 +79,17 @@ export class MethodRegistry {
       'nmGetPairingCode',
       'nmBeginHandshake',
       'nmFinishHandshake',
-      'nmCloseSession'
+      'nmCloseSession',
+      'nmConfirmPairing',
+      'checkExtensionPairingStatus'
     ]
-    const exemptMethods = [...authMethods, ...statusMethods, ...pairingMethods]
+    const autoLockMethods = ['getAutoLockSettings']
+    const exemptMethods = [
+      ...authMethods,
+      ...statusMethods,
+      ...pairingMethods,
+      ...autoLockMethods
+    ]
     const shouldCheckAuth = !exemptMethods.includes(methodName)
 
     if (shouldCheckAuth) {
@@ -92,12 +106,15 @@ export class MethodRegistry {
             `Desktop not authenticated for method ${methodName}`
           )
           throw new Error(
-            'DesktopNotAuthenticated: Desktop app is not authenticated'
+            createErrorWithCode(
+              SecurityErrorCodes.DESKTOP_NOT_AUTHENTICATED,
+              'Desktop app is not authenticated'
+            )
           )
         }
       } catch (error) {
         // If we can't check status or not initialized, desktop is not authenticated
-        if (error.message.includes('DesktopNotAuthenticated')) {
+        if (error.message.includes('DESKTOP_NOT_AUTHENTICATED')) {
           throw error
         }
         logger.info(
@@ -105,7 +122,10 @@ export class MethodRegistry {
           `Could not verify auth for ${methodName}: ${error.message}`
         )
         throw new Error(
-          'DesktopNotAuthenticated: Desktop app is not authenticated'
+          createErrorWithCode(
+            SecurityErrorCodes.DESKTOP_NOT_AUTHENTICATED,
+            'Desktop app is not authenticated'
+          )
         )
       }
     }

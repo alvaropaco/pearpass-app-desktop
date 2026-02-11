@@ -56,6 +56,7 @@ jest.mock('./handlers/SecurityHandlers', () => ({
       x25519PublicKey: 'mock-x25519-key',
       fingerprint: 'mock-fingerprint'
     })
+    this.nmConfirmPairing = jest.fn().mockResolvedValue({ confirmed: true })
     this.nmBeginHandshake = jest.fn().mockResolvedValue({
       sessionId: 'mock-session-id',
       appEphemeralPubB64: 'mock-ephemeral-key',
@@ -63,11 +64,6 @@ jest.mock('./handlers/SecurityHandlers', () => ({
     })
     this.nmFinishHandshake = jest.fn().mockResolvedValue({ ok: true })
     this.nmCloseSession = jest.fn().mockResolvedValue({ ok: true })
-    this.checkAvailability = jest.fn().mockResolvedValue({
-      available: true,
-      status: 'running',
-      message: 'Desktop app is running'
-    })
     this.nmResetPairing = jest.fn().mockResolvedValue({
       ok: true,
       clearedSessions: 0,
@@ -77,6 +73,17 @@ jest.mock('./handlers/SecurityHandlers', () => ({
         creationDate: new Date().toISOString()
       }
     })
+    this.checkExtensionPairingStatus = jest.fn().mockResolvedValue({
+      isPaired: false,
+      status: 'not_paired'
+    })
+    this.getAutoLockSettings = jest.fn().mockResolvedValue({
+      autoLockEnabled: true,
+      autoLockTimeoutMs: 1234
+    })
+    this.setAutoLockTimeout = jest.fn().mockResolvedValue({ ok: true })
+    this.setAutoLockEnabled = jest.fn().mockResolvedValue({ ok: true })
+    this.resetTimer = jest.fn().mockResolvedValue({ ok: true })
   })
 }))
 
@@ -100,6 +107,8 @@ jest.mock('./handlers/EncryptionHandlers', () => ({
     this.getMasterPasswordStatus = jest
       .fn()
       .mockResolvedValue({ isLocked: false, failedAttempts: 0 })
+    this.resetFailedAttempts = jest.fn().mockResolvedValue({ success: true })
+    this.initWithPassword = jest.fn().mockResolvedValue(true)
   })
 }))
 
@@ -282,15 +291,6 @@ describe('nativeMessagingIPCServer', () => {
         expect(handlers.encryptionInit).toBeDefined()
         expect(handlers.encryptionGetStatus).toBeDefined()
 
-        // Test availability check handler
-        expect(handlers.checkAvailability).toBeDefined()
-        const availability = await handlers.checkAvailability()
-        expect(availability).toEqual({
-          available: true,
-          status: 'running',
-          message: 'Desktop app is running'
-        })
-
         // Test that sensitive handlers are NOT directly exposed
         // They should only be accessible via nmSecureRequest
         expect(handlers.encryptionGet).toBeUndefined()
@@ -340,6 +340,37 @@ describe('nativeMessagingIPCServer', () => {
           ciphertextB64: 'mock-ciphertext',
           seq: 1
         })
+      })
+
+      it('should expose auto-lock handlers on the method registry', async () => {
+        await serverInstance.start()
+        const handlers = IPC.Server.mock.calls[0][0].handlers
+
+        expect(handlers.getAutoLockSettings).toBeDefined()
+        expect(handlers.setAutoLockTimeout).toBeDefined()
+        expect(handlers.setAutoLockEnabled).toBeDefined()
+        expect(handlers.resetTimer).toBeDefined()
+      })
+
+      it('should call auto-lock handlers correctly', async () => {
+        await serverInstance.start()
+        const handlers = IPC.Server.mock.calls[0][0].handlers
+
+        expect(await handlers.getAutoLockSettings()).toEqual({
+          autoLockEnabled: true,
+          autoLockTimeoutMs: 1234
+        })
+        expect(
+          await handlers.setAutoLockTimeout({ autoLockTimeoutMs: 5000 })
+        ).toEqual({
+          ok: true
+        })
+        expect(
+          await handlers.setAutoLockEnabled({ autoLockEnabled: false })
+        ).toEqual({
+          ok: true
+        })
+        expect(await handlers.resetTimer()).toEqual({ ok: true })
       })
     })
 

@@ -16,9 +16,14 @@ import { ButtonCreate } from '../../lib-react-components'
  * @param {{
  *  selectedFolder?: string
  *  isFavoritesView?: boolean
+ *  isSearchActive?: boolean
  * }} props
  */
-export const EmptyCollectionView = ({ selectedFolder, isFavoritesView }) => {
+export const EmptyCollectionView = ({
+  selectedFolder,
+  isFavoritesView,
+  isSearchActive
+}) => {
   const { data } = useRouter()
   const { t } = useTranslation()
   const { handleCreateOrEditRecord } = useCreateOrEditRecord()
@@ -37,15 +42,26 @@ export const EmptyCollectionView = ({ selectedFolder, isFavoritesView }) => {
   ]
 
   return html`
-    <${CollectionsWrapper}>
+    <${CollectionsWrapper}
+      data-testid="empty-collection-view"
+      $isSearchActive=${isSearchActive}
+    >
       <${CollectionsContainer}>
         <${CollectionsTitle}>
-          <span> ${t('This collection is empty.')}</span>
+          <span>
+            ${isSearchActive
+              ? t('No result found.')
+              : t('This collection is empty.')}
+          </span>
 
-          <p>${t('Create a new element or pass to another collection')}</p>
+          ${!isSearchActive &&
+          html`<p>
+            ${t('Create a new element or pass to another collection')}
+          </p>`}
         <//>
 
-        ${createCollectionOptions
+        ${!isSearchActive &&
+        createCollectionOptions
           .filter(
             (option) =>
               data.recordType === 'all' || option.type === data.recordType
@@ -54,6 +70,7 @@ export const EmptyCollectionView = ({ selectedFolder, isFavoritesView }) => {
             (option) => html`
               <${ButtonCreate}
                 key=${option.type}
+                testId=${`emptycollection-button-create-${option.type}`}
                 startIcon=${RECORD_ICON_BY_TYPE[option.type]}
                 onClick=${() =>
                   handleCreateOrEditRecord({

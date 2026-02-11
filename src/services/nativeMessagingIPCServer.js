@@ -65,6 +65,10 @@ export class NativeMessagingIPCServer {
       securityHandlers.nmGetAppIdentity.bind(securityHandlers)
     )
     this.methodRegistry.register(
+      'nmConfirmPairing',
+      securityHandlers.nmConfirmPairing.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
       'nmBeginHandshake',
       securityHandlers.nmBeginHandshake.bind(securityHandlers)
     )
@@ -81,8 +85,24 @@ export class NativeMessagingIPCServer {
       securityHandlers.nmResetPairing.bind(securityHandlers)
     )
     this.methodRegistry.register(
-      'checkAvailability',
-      securityHandlers.checkAvailability.bind(securityHandlers)
+      'getAutoLockSettings',
+      securityHandlers.getAutoLockSettings.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'setAutoLockTimeout',
+      securityHandlers.setAutoLockTimeout.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'setAutoLockEnabled',
+      securityHandlers.setAutoLockEnabled.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'resetTimer',
+      securityHandlers.resetTimer.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'checkExtensionPairingStatus',
+      securityHandlers.checkExtensionPairingStatus.bind(securityHandlers)
     )
 
     // Register encryption bootstrap methods
@@ -172,6 +192,14 @@ export class NativeMessagingIPCServer {
     this.secureMethodRegistry.register(
       'recordFailedMasterPassword',
       encryptionHandlers.recordFailedMasterPassword.bind(encryptionHandlers)
+    )
+    this.secureMethodRegistry.register(
+      'resetFailedAttempts',
+      encryptionHandlers.resetFailedAttempts.bind(encryptionHandlers)
+    )
+    this.secureMethodRegistry.register(
+      'initWithPassword',
+      encryptionHandlers.initWithPassword.bind(encryptionHandlers)
     )
 
     // Vault methods

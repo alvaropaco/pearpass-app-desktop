@@ -44,11 +44,11 @@ const COMMAND_DEFINITIONS = [
 
   // Native Messaging secure channel (pairing/handshake)
   { id: 1100, name: 'nmGetAppIdentity' },
-  // Handshake/session placeholders for Phase 2
   { id: 1102, name: 'nmBeginHandshake' },
   { id: 1103, name: 'nmFinishHandshake' },
   { id: 1104, name: 'nmSecureRequest' },
   { id: 1105, name: 'nmCloseSession' },
+  { id: 1106, name: 'nmConfirmPairing' },
 
   // Pairing and misc commands
   { id: 1025, name: 'pairActiveVault' },
@@ -59,7 +59,18 @@ const COMMAND_DEFINITIONS = [
   { id: 1029, name: 'recordFailedMasterPassword' },
   { id: 1030, name: 'getMasterPasswordStatus' },
 
-  { id: 1031, name: 'activeVaultRemoveFile' }
+  { id: 1031, name: 'activeVaultRemoveFile' },
+  { id: 1032, name: 'resetFailedAttempts' },
+
+  // Extension pairing
+  { id: 1033, name: 'checkExtensionPairingStatus' },
+
+  // Master password commands
+  { id: 1034, name: 'initWithPassword' },
+  { id: 1035, name: 'getAutoLockSettings' },
+  { id: 1036, name: 'setAutoLockTimeout' },
+  { id: 1037, name: 'setAutoLockEnabled' },
+  { id: 1038, name: 'resetTimer' }
 ]
 
 /** @type {string[]} */

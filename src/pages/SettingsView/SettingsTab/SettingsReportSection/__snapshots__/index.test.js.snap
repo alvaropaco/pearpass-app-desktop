@@ -18,11 +18,19 @@ exports[`SettingsReportSection matches snapshot 1`] = `
       <form
         class="sc-bRKDuR hMjkPC"
       >
-        <textarea
-          class="sc-cdmAjP YGqQu"
-          data-testid="text-area"
-          placeholder="Describe the issue"
-        />
+        <div
+          class="sc-jytpVa dLDlNu"
+        >
+          <div
+            class="sc-eknHtZ gUwSmg"
+          >
+            <textarea
+              class="sc-cdmAjP kJVkCe"
+              data-testid="text-area"
+              placeholder="Describe the issue"
+            />
+          </div>
+        </div>
         <div
           class="sc-hvigdm gPHtFM"
         >

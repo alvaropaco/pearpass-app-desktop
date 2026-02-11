@@ -21,6 +21,12 @@ declare module 'styled-components' {
       grey200: {
         mode1: string
       }
+      grey300: {
+        mode1: string
+      }
+      grey350: {
+        mode1: string
+      }
       grey400: {
         mode1: string
       }

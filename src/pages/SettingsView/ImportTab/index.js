@@ -16,7 +16,6 @@ import { CardSingleSetting } from '../../../components/CardSingleSetting'
 import { ImportDataOption } from '../../../components/ImportDataOption'
 import { useToast } from '../../../context/ToastContext'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { LockIcon } from '../../../lib-react-components'
 import { logger } from '../../../utils/logger'
 
 const importOptions = [
@@ -61,7 +60,7 @@ const importOptions = [
     title: 'Unencrypted file',
     type: 'unencrypted',
     accepts: ['.json', '.csv'],
-    icon: LockIcon
+    imgSrc: '/assets/images/pearpass_logo.png'
   }
 ]
 
@@ -158,11 +157,11 @@ export const ImportTab = () => {
     }
   }
 
-  return html` <${CardSingleSetting} title=${t('Import')}>
+  return html` <${CardSingleSetting} title=${t('Import Vault')}>
     <${ContentContainer}>
       <${Description}>
         ${t(
-          'Here you can import different file, export your data and then upload it here'
+          "Move your saved items here from another password manager. They'll be added to this vault."
         )}
       <//>
 
