@@ -1,68 +1,68 @@
 [submodule "packages/pear-apps-lib-feedback"]
 	path = packages/pear-apps-lib-feedback
-	url = git@github.com:tetherto/pear-apps-lib-feedback.git
-	branch = dev
+	url = ../pear-apps-lib-feedback.git
+	branch = main
 [submodule "packages/pear-apps-lib-ui-react-hooks"]
 	path = packages/pear-apps-lib-ui-react-hooks
-	url = git@github.com:tetherto/pear-apps-lib-ui-react-hooks.git
-	branch = dev
+	url = ../pear-apps-lib-ui-react-hooks.git
+	branch = main
 [submodule "packages/pear-apps-utils-avatar-initials"]
 	path = packages/pear-apps-utils-avatar-initials
-	url = git@github.com:tetherto/pear-apps-utils-avatar-initials.git
-	branch = dev
+	url = ../pear-apps-utils-avatar-initials.git
+	branch = main
 [submodule "packages/pear-apps-utils-date"]
 	path = packages/pear-apps-utils-date
-	url = git@github.com:tetherto/pear-apps-utils-date.git
-	branch = dev
+	url = ../pear-apps-utils-date.git
+	branch = main
 [submodule "packages/pear-apps-utils-generate-unique-id"]
 	path = packages/pear-apps-utils-generate-unique-id
-	url = git@github.com:tetherto/pear-apps-utils-generate-unique-id.git
-	branch = dev
+	url = ../pear-apps-utils-generate-unique-id.git
+	branch = main
 [submodule "packages/pear-apps-utils-pattern-search"]
 	path = packages/pear-apps-utils-pattern-search
-	url = git@github.com:tetherto/pear-apps-utils-pattern-search.git
-	branch = dev
+	url = ../pear-apps-utils-pattern-search.git
+	branch = main
 [submodule "packages/pear-apps-utils-qr"]
 	path = packages/pear-apps-utils-qr
-	url = git@github.com:tetherto/pear-apps-utils-qr.git
-	branch = dev
+	url = ../pear-apps-utils-qr.git
+	branch = main
 [submodule "packages/pear-apps-utils-validator"]
 	path = packages/pear-apps-utils-validator
-	url = git@github.com:tetherto/pear-apps-utils-validator.git
-	branch = dev
+	url = ../pear-apps-utils-validator.git
+	branch = main
 [submodule "packages/pearpass-lib-constants"]
 	path = packages/pearpass-lib-constants
-	url = git@github.com:tetherto/pearpass-lib-constants.git
-	branch = dev
+	url = ../pearpass-lib-constants.git
+	branch = main
 [submodule "packages/pearpass-lib-data-export"]
 	path = packages/pearpass-lib-data-export
-	url = git@github.com:tetherto/pearpass-lib-data-export.git
-	branch = dev
+	url = ../pearpass-lib-data-export.git
+	branch = main
 [submodule "packages/pearpass-lib-data-import"]
 	path = packages/pearpass-lib-data-import
-	url = git@github.com:tetherto/pearpass-lib-data-import.git
-	branch = dev
+	url = ../pearpass-lib-data-import.git
+	branch = main
 [submodule "packages/pearpass-lib-ui-theme-provider"]
 	path = packages/pearpass-lib-ui-theme-provider
-	url = git@github.com:tetherto/pearpass-lib-ui-theme-provider.git
-	branch = dev
+	url = ../pearpass-lib-ui-theme-provider.git
+	branch = main
 [submodule "packages/pearpass-lib-vault"]
 	path = packages/pearpass-lib-vault
-	url = git@github.com:tetherto/pearpass-lib-vault.git
-	branch = dev
+	url = ../pearpass-lib-vault.git
+	branch = main
 [submodule "packages/pearpass-lib-vault-core"]
 	path = packages/pearpass-lib-vault-core
-	url = git@github.com:tetherto/pearpass-lib-vault-core.git
-	branch = dev
+	url = ../pearpass-lib-vault-core.git
+	branch = main
 [submodule "packages/pearpass-utils-password-check"]
 	path = packages/pearpass-utils-password-check
-	url = git@github.com:tetherto/pearpass-utils-password-check.git
-	branch = dev
+	url = ../pearpass-utils-password-check.git
+	branch = main
 [submodule "packages/pearpass-utils-password-generator"]
 	path = packages/pearpass-utils-password-generator
-	url = git@github.com:tetherto/pearpass-utils-password-generator.git
-	branch = dev
+	url = ../pearpass-utils-password-generator.git
+	branch = main
 [submodule "packages/tether-dev-docs"]
 	path = packages/tether-dev-docs
-	url = git@github.com:tetherto/tether-dev-docs.git
-	branch = dev
+	url = ../tether-dev-docs.git
+	branch = main
