@@ -65,6 +65,10 @@ export class NativeMessagingIPCServer {
       securityHandlers.nmGetAppIdentity.bind(securityHandlers)
     )
     this.methodRegistry.register(
+      'nmConfirmPairing',
+      securityHandlers.nmConfirmPairing.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
       'nmBeginHandshake',
       securityHandlers.nmBeginHandshake.bind(securityHandlers)
     )
@@ -79,6 +83,22 @@ export class NativeMessagingIPCServer {
     this.methodRegistry.register(
       'nmResetPairing',
       securityHandlers.nmResetPairing.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'getAutoLockSettings',
+      securityHandlers.getAutoLockSettings.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'setAutoLockTimeout',
+      securityHandlers.setAutoLockTimeout.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'setAutoLockEnabled',
+      securityHandlers.setAutoLockEnabled.bind(securityHandlers)
+    )
+    this.methodRegistry.register(
+      'resetTimer',
+      securityHandlers.resetTimer.bind(securityHandlers)
     )
     this.methodRegistry.register(
       'checkExtensionPairingStatus',
