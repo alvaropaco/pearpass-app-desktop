@@ -9,6 +9,8 @@ BUILD_DIR="$PROJECT_DIR/build/flatpak"
 APPIMAGE_PATH=""
 ARCH=""
 VERSION=""
+# Default: dev app key (from appling/app.dev.cjs)
+APP_KEY="8ue4k8ooakpmwukzutkno5ca9wy3yono6mp4q69bph8tt11pfthy"
 
 log_info()  { echo -e "\033[1;34m[INFO]\033[0m  $*"; }
 log_ok()    { echo -e "\033[1;32m[OK]\033[0m    $*"; }
@@ -16,15 +18,22 @@ log_error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; }
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") --local <AppImage> [--arch arm64|x64]
+Usage: $(basename "$0") --local <AppImage> [--arch arm64|x64] [--app-key <key>]
 
 Options:
-  --local <path>   Path to a locally-built AppImage (required)
-  --arch <arch>    Target architecture (default: auto-detect)
-  -h, --help       Show this help message
+  --local <path>     Path to a locally-built AppImage (required)
+  --arch <arch>      Target architecture (default: auto-detect)
+  --app-key <key>    Pear app key (default: dev key)
+  -h, --help         Show this help message
+
+App keys:
+  dev:      8ue4k8ooakpmwukzutkno5ca9wy3yono6mp4q69bph8tt11pfthy
+  staging:  8k5z91c8u7nycsjow5m9ppmw75jznm66oe13mwt94cbohuyksdeo
+  prod:     tywsat7gz8m65ejx4zjn3773pbdc4j8m66tukis8dgzekraymtzo
 
 Example:
   $(basename "$0") --local ./appling/PearPass.AppImage
+  $(basename "$0") --local ./appling/PearPass.AppImage --app-key tywsat7gz8m65ejx4zjn3773pbdc4j8m66tukis8dgzekraymtzo
 EOF
     exit 0
 }
@@ -67,8 +76,9 @@ check_prerequisites() {
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --local)  APPIMAGE_PATH="$2"; shift 2 ;;
-            --arch)   ARCH="$2"; shift 2 ;;
+            --local)    APPIMAGE_PATH="$2"; shift 2 ;;
+            --arch)     ARCH="$2"; shift 2 ;;
+            --app-key)  APP_KEY="$2"; shift 2 ;;
             -h|--help) usage ;;
             *) log_error "Unknown option: $1"; usage ;;
         esac
@@ -92,6 +102,7 @@ parse_args() {
     log_info "AppImage : $APPIMAGE_PATH"
     log_info "Arch     : $ARCH"
     log_info "Version  : $VERSION"
+    log_info "App key  : $APP_KEY"
 }
 
 prepare_icon() {
@@ -134,6 +145,9 @@ build_flatpak() {
     cp "$APPIMAGE_PATH" "$FLATPAK_DIR/appimage/PearPass.AppImage"
     chmod +x "$FLATPAK_DIR/appimage/PearPass.AppImage"
 
+    log_info "Writing Pear app key ..."
+    printf '%s' "$APP_KEY" > "$FLATPAK_DIR/pear-app-key"
+
     log_info "Building flatpak ..."
     mkdir -p "$BUILD_DIR"
 
@@ -158,6 +172,7 @@ cleanup() {
     log_info "Cleaning staging files ..."
     rm -f "$FLATPAK_DIR/appimage/PearPass.AppImage"
     rm -f "$FLATPAK_DIR/icon-512.png"
+    rm -f "$FLATPAK_DIR/pear-app-key"
 }
 
 # ── Main ────────────────────────────────────────────────────────────────
