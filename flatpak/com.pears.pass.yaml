@@ -11,10 +11,12 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
-  - --filesystem=home
-  - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
+  # GVFS mount tracker is accessed via org.gtk.vfs.MountTracker on the session bus.
+  # Some setups error with ServiceUnknown/activation issues; allowing the name avoids
+  # policy-related failures and improves file chooser / mounts integration.
+  - --talk-name=org.gtk.vfs.*
   - --env=LD_LIBRARY_PATH=/app/lib
 
 modules:
@@ -41,7 +43,40 @@ modules:
         cat > /app/bin/pearpass <<'WRAPPER'
         #!/bin/bash
         export LD_LIBRARY_PATH="/app/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        exec /app/bin/pear-pass "$@"
+
+        # Workarounds for virtual GPUs (notably QEMU):
+        # - Mesa may fail to pick a physical device (e.g. "ZINK: failed to choose pdev")
+        # - GTK4's GL/Vulkan renderers can be unstable on llvmpipe/VMs ("no UI"/hangs)
+        # - DMABUF rendering (WebKitGTK) can be problematic on software/virtual GPUs
+        is_qemu=0
+        for f in \
+          /sys/class/dmi/id/sys_vendor \
+          /sys/class/dmi/id/product_name \
+          /sys/devices/virtual/dmi/id/sys_vendor \
+          /sys/devices/virtual/dmi/id/product_name; do
+          if [[ -r "$f" ]] && grep -qi 'qemu' "$f"; then
+            is_qemu=1
+            break
+          fi
+        done
+        
+        if [[ "$is_qemu" == "1" ]]; then
+          # Force software rendering ONLY if the user hasn't already chosen.
+          if [[ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]]; then
+            export LIBGL_ALWAYS_SOFTWARE=1
+          fi
+          # Prefer a safer GTK renderer on VMs unless explicitly overridden.
+          export GSK_RENDERER="${GSK_RENDERER:-cairo}"
+          # Disable DMABUF for WebKit-based UI unless explicitly overridden.
+          export WEBKIT_DISABLE_DMABUF_RENDERER="${WEBKIT_DISABLE_DMABUF_RENDERER:-1}"
+        fi
+
+        # Run the bundled PearPass binary against the bundled app bundle.
+        # Do not access the host's home/config; Flatpak should use its own
+        # per-app data under ~/.var/app/com.pears.pass.
+        # Force argv[0] so GTK/Wayland derives a stable app_id that matches the
+        # Flatpak application ID (helps GNOME associate/show the window).
+        exec -a com.pears.pass /app/bin/pear-pass /app/share/pear-pass/app.bundle "$@"
         WRAPPER
       - chmod +x /app/bin/pearpass
 

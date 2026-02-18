@@ -75,3 +75,6 @@ flatpak/.flatpak-builder/
 # Appling (AppImage builds)
 appling/*.AppImage
 appling/node_modules/
+
+# test files
+test-results

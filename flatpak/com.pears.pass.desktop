@@ -9,6 +9,7 @@ Type=Application
 Categories=Utility;Security;
 Keywords=password;manager;vault;security;credentials;encryption;sync;
 StartupNotify=true
-StartupWMClass=PearPass
+# Keep WM class aligned with the app_id / argv[0] used by the wrapper.
+StartupWMClass=com.pears.pass
 MimeType=x-scheme-handler/pearpass;
 
