@@ -99,11 +99,101 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
 
+      - name: Create binary tar.gz archive
+        id: create_tarball
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.version.outputs.version }}"
+          ARCH="${{ matrix.arch }}"
+          APPIMAGE_PATH="${{ steps.find_file.outputs.APPIMAGE_PATH }}"
+
+          # Create extraction directory
+          EXTRACT_DIR="$GITHUB_WORKSPACE/appimage-extract"
+          mkdir -p "$EXTRACT_DIR"
+
+          # Extract AppImage contents
+          cd "$EXTRACT_DIR"
+          chmod +x "$APPIMAGE_PATH"
+          "$APPIMAGE_PATH" --appimage-extract
+
+          # Create tarball staging directory with consistent structure
+          TARBALL_DIR="$GITHUB_WORKSPACE/tarball-staging"
+          mkdir -p "$TARBALL_DIR/lib"
+          mkdir -p "$TARBALL_DIR/pear-pass"
+
+          # Find and copy the main binary
+          BINARY_PATH=$(find squashfs-root -name "pear-pass" -type f -executable | head -n 1)
+          if [[ -z "$BINARY_PATH" ]]; then
+            BINARY_PATH=$(find squashfs-root -name "pearpass" -type f -executable | head -n 1)
+          fi
+          if [[ -n "$BINARY_PATH" ]]; then
+            cp "$BINARY_PATH" "$TARBALL_DIR/pearpass"
+            chmod +x "$TARBALL_DIR/pearpass"
+            echo "Copied binary from: $BINARY_PATH"
+          else
+            echo "❌ Error: Could not find main binary in AppImage"
+            find squashfs-root -type f -executable
+            exit 1
+          fi
+
+          # Find and copy app.bundle
+          BUNDLE_PATH=$(find squashfs-root -name "app.bundle" -type f | head -n 1)
+          if [[ -n "$BUNDLE_PATH" ]]; then
+            cp "$BUNDLE_PATH" "$TARBALL_DIR/pear-pass/app.bundle"
+            echo "Copied app.bundle from: $BUNDLE_PATH"
+          else
+            echo "⚠️ Warning: app.bundle not found in AppImage"
+          fi
+
+          # Find and copy native .so libraries
+          find squashfs-root -name "*.so" -type f | while read -r so_file; do
+            cp "$so_file" "$TARBALL_DIR/lib/"
+            echo "Copied library: $so_file"
+          done
+
+          # List the contents for verification
+          echo "=== Tarball contents ==="
+          find "$TARBALL_DIR" -type f
+
+          # Create the tarball
+          cd "$TARBALL_DIR"
+          TARBALL_NAME="PearPass.linux.${ARCH}.bin.tar.gz"
+          tar -czvf "$GITHUB_WORKSPACE/$TARBALL_NAME" .
+
+          echo "TARBALL_PATH=$GITHUB_WORKSPACE/$TARBALL_NAME" >> "$GITHUB_OUTPUT"
+          echo "Created tarball: $GITHUB_WORKSPACE/$TARBALL_NAME"
+
       - uses: actions/upload-artifact@v4
         if: ${{ steps.find_file.outputs.APPIMAGE_PATH != '' }}
         with:
           name: PearPass-Desktop-Linux-${{ matrix.arch }}-v${{ needs.version.outputs.version }}.AppImage
           path: "${{ steps.find_file.outputs.APPIMAGE_PATH }}"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.create_tarball.outputs.TARBALL_PATH != '' }}
+        with:
+          name: PearPass.linux.${{ matrix.arch }}.bin.tar.gz
+          path: "${{ steps.create_tarball.outputs.TARBALL_PATH }}"
+
+      - name: Upload tarball to static.tether.dev
+        if: ${{ steps.create_tarball.outputs.TARBALL_PATH != '' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/staging') }}
+        env:
+          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          CLOUDFLARE_R2_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_ENDPOINT }}
+          CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+        run: |
+          # Install AWS CLI for S3-compatible uploads
+          sudo apt-get update && sudo apt-get install -y awscli
+
+          # Upload to Cloudflare R2 (or S3-compatible storage)
+          aws s3 cp "${{ steps.create_tarball.outputs.TARBALL_PATH }}" \
+            "s3://${CLOUDFLARE_R2_BUCKET}/pearpass/PearPass.linux.${{ matrix.arch }}.bin.tar.gz" \
+            --endpoint-url "${CLOUDFLARE_R2_ENDPOINT}" \
+            --region auto \
+            --acl public-read
+
+          echo "✓ Uploaded tarball to static.tether.dev"
 
   macos:
     runs-on: macos-14
