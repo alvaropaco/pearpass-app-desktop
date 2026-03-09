@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { html } from 'htm/react'
 
 import { CopyIcon } from '../lib-react-components'
-import { useCopyToClipboard } from './useCopyToClipboard'
+import { useCopyToClipboard } from './useCopyToClipboard.electron'
 import { useTranslation } from './useTranslation'
 import { COPY_FEEDBACK_DISPLAY_TIME } from '../constants/timeConstants'
 import { ExtensionPairingModalContent } from '../containers/Modal/ExtensionPairingModalContent'

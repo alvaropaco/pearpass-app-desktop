@@ -22,6 +22,18 @@ const PAIRING_CODE_TAG = Buffer.from('pearpass/pairingcode/v1', 'utf8')
 // Structure: { ed25519PublicKeyBytes, ed25519PrivateKeyBytes, x25519PublicKeyBytes, x25519PrivateKeyBytes, creationDate }
 let MEMORY_IDENTITY = null
 
+// Some bundlers/environments can fail to populate sodium-native's *BYTES
+// constants on first import. Provide safe fallbacks using the known sizes
+// from libsodium so Buffer.alloc(size) never sees `undefined`.
+const ED25519_SECRETKEY_BYTES =
+  sodium.crypto_sign_SECRETKEYBYTES || 64 /* crypto_sign_SECRETKEYBYTES */
+const ED25519_PUBLICKEY_BYTES =
+  sodium.crypto_sign_PUBLICKEYBYTES || 32 /* crypto_sign_PUBLICKEYBYTES */
+const X25519_SECRETKEY_BYTES =
+  sodium.crypto_box_SECRETKEYBYTES || 32 /* crypto_box_SECRETKEYBYTES */
+const X25519_PUBLICKEY_BYTES =
+  sodium.crypto_box_PUBLICKEYBYTES || 32 /* crypto_box_PUBLICKEYBYTES */
+
 /**
  * Normalize encryptionGet return shape to base64 string or null
  * Some client implementations return a string, others { data: string|null }.
@@ -136,18 +148,33 @@ const ensureEncryptionInitialized = async (client) => {
  */
 const generateAndPersistIdentity = async (client) => {
   // Ed25519 signing
-  const ed25519PrivateKeyBytes = new Uint8Array(
-    sodium.crypto_sign_SECRETKEYBYTES
-  )
-  const ed25519PublicKeyBytes = new Uint8Array(
-    sodium.crypto_sign_PUBLICKEYBYTES
-  )
-  sodium.crypto_sign_keypair(ed25519PublicKeyBytes, ed25519PrivateKeyBytes)
+  // sodium-native expects Node Buffers, not plain Uint8Array instances.
+  let ed25519PrivateKeyBytes = Buffer.alloc(ED25519_SECRETKEY_BYTES)
+  let ed25519PublicKeyBytes = Buffer.alloc(ED25519_PUBLICKEY_BYTES)
+  try {
+    // Preferred path when running against sodium-native in a Node-like env.
+    sodium.crypto_sign_keypair(ed25519PublicKeyBytes, ed25519PrivateKeyBytes)
+  } catch {
+    // Fallback: some sodium builds (or shims) expect plain Uint8Array
+    const edSk = new Uint8Array(ED25519_SECRETKEY_BYTES)
+    const edPk = new Uint8Array(ED25519_PUBLICKEY_BYTES)
+    sodium.crypto_sign_keypair(edPk, edSk)
+    ed25519PrivateKeyBytes = Buffer.from(edSk)
+    ed25519PublicKeyBytes = Buffer.from(edPk)
+  }
 
   // X25519 (Curve25519) for ECDH
-  const x25519PrivateKeyBytes = new Uint8Array(sodium.crypto_box_SECRETKEYBYTES)
-  const x25519PublicKeyBytes = new Uint8Array(sodium.crypto_box_PUBLICKEYBYTES)
-  sodium.crypto_box_keypair(x25519PublicKeyBytes, x25519PrivateKeyBytes)
+  let x25519PrivateKeyBytes = Buffer.alloc(X25519_SECRETKEY_BYTES)
+  let x25519PublicKeyBytes = Buffer.alloc(X25519_PUBLICKEY_BYTES)
+  try {
+    sodium.crypto_box_keypair(x25519PublicKeyBytes, x25519PrivateKeyBytes)
+  } catch {
+    const xSk = new Uint8Array(X25519_SECRETKEY_BYTES)
+    const xPk = new Uint8Array(X25519_PUBLICKEY_BYTES)
+    sodium.crypto_box_keypair(xPk, xSk)
+    x25519PrivateKeyBytes = Buffer.from(xSk)
+    x25519PublicKeyBytes = Buffer.from(xPk)
+  }
 
   // Persist (private and public concatenated; client encrypts in storage)
   const payloadEd25519 = Buffer.concat([

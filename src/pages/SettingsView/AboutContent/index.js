@@ -34,6 +34,7 @@ export const AboutContent = () => {
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [currentVersion, setCurrentVersion] = useState('')
+  const electronAPI = window.electronAPI
   useGlobalLoading({ isLoading })
 
   const handleReportProblem = async () => {
@@ -111,16 +112,18 @@ export const AboutContent = () => {
   }
 
   useEffect(() => {
-    fetch('/package.json')
-      .then((r) => r.json())
-      .then((pkg) => setCurrentVersion(pkg.version))
-      .catch((error) =>
-        logger.error(
-          'useGetMultipleFiles',
-          'Error fetching package.json:',
-          error
+    if (electronAPI && typeof electronAPI.getAppVersion === 'function') {
+      electronAPI
+        .getConfig()
+        .then((cfg) => {
+          if (cfg && typeof cfg.version === 'string') {
+            setCurrentVersion(cfg.version)
+          }
+        })
+        .catch((error) =>
+          logger.error('AboutContent', 'Error getting runtime config:', error)
         )
-      )
+    }
   }, [])
 
   return html`

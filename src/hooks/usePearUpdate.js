@@ -10,6 +10,7 @@ import { useModal } from '../context/ModalContext'
 export const usePearUpdate = () => {
   const { setModal } = useModal()
   const modalShownRef = useRef(false)
+  const electronAPI = window.electronAPI
 
   const showUpdateRequiredModal = () => {
     if (modalShownRef.current || !Pear.config.key) {
@@ -51,6 +52,16 @@ export const usePearUpdate = () => {
     checkIfUpdated()
 
     Pear.updates(onPearUpdate)
+
+    // Electron main-driven update notifications (via preload)
+    if (electronAPI && typeof electronAPI.onRuntimeUpdated === 'function') {
+      const off = electronAPI.onRuntimeUpdated(() => {
+        showUpdateRequiredModal()
+      })
+      return () => {
+        off?.()
+      }
+    }
   }, [])
 }
 
@@ -63,6 +74,17 @@ function shouldIgnoreChanges(diff) {
   )
 }
 
-function handleUpdateApp() {
-  Pear.restart({ platform: false })
+async function handleUpdateApp() {
+  const electronAPI = window.electronAPI
+  if (!electronAPI) {
+    return
+  }
+  try {
+    await electronAPI.applyUpdate()
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to apply pear runtime update', err)
+  } finally {
+    electronAPI.restart()
+  }
 }

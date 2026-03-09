@@ -78,7 +78,7 @@ export const CreateCustomField = ({ onCreateCustom, testId, dataId }) => {
   return html`
     <${Wrapper} ref=${wrapperRef} data-id=${dataId}>
       <${Label} data-testid=${testId} onClick=${() => setIsOpen(!isOpen)}>
-        <${PlusIcon} size="21" />
+        <${PlusIcon} size="21" 
 
         <div>${i18n._('Create Custom')}</div>
 
@@ -87,21 +87,23 @@ export const CreateCustomField = ({ onCreateCustom, testId, dataId }) => {
         <//>
       <//>
 
-      ${isOpen &&
-      html`<${DropDown}>
-        ${OPTIONS.map(
-          (option) => html`
-            <${ButtonFilter}
-              testId=${`createcustomfield-option-${option.type}`}
-              variant="secondary"
-              startIcon=${option.icon}
-              onClick=${() => handleSelect(option.type)}
-            >
-              ${option.name}
-            <//>
-          `
-        )}
-      <//>`}
+      ${
+        isOpen &&
+        html`<${DropDown}>
+          ${OPTIONS.map(
+            (option) => html`
+              <${ButtonFilter}
+                testId=${`createcustomfield-option-${option.type}`}
+                variant="secondary"
+                startIcon=${option.icon}
+                onClick=${() => handleSelect(option.type)}
+              >
+                ${option.name}
+              <//>
+            `
+          )}
+        <//>`
+      }
     <//>
   `
 }

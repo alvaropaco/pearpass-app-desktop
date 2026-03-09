@@ -78,3 +78,5 @@ appling/node_modules/
 
 # test files
 test-results
+
+out/

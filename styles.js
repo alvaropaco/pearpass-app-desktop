@@ -21,10 +21,6 @@ export const setFontsAndResetCSS = () => {
         format('truetype');
     }
 
-    :root {
-      --title-bar-height: 30px;
-    }
-
     pear-ctrl[data-platform='darwin'] {
       margin-top: 12px;
       margin-left: 10px;
