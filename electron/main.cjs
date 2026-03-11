@@ -9,7 +9,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 
-const { app, BrowserWindow, ipcMain, nativeImage, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, nativeImage } = require('electron')
 const getPearRuntimeLegacyStorage = require('pear-runtime-legacy-storage')
 const { isLinux, isWindows } = require('which-runtime')
 
@@ -301,8 +301,6 @@ async function startWorkletOnly() {
   clearVaultStorageForDevReset(getStorageDir())
 
   // In packaged builds, Bare's module resolution uses the process cwd.
-  // Ensure the sidecar process starts with cwd pointing at app.asar.unpacked
-  // so it can resolve node_modules and the unpacked worklet sources.
   let previousCwd = null
   if (app.isPackaged) {
     const appRoot = path.join(process.resourcesPath, 'app')
@@ -454,9 +452,7 @@ function registerIPC() {
       key: runtimeConfig.upgrade || null,
       upgrade: runtimeConfig.upgrade,
       version: runtimeConfig.version,
-      applink: runtimeConfig.upgrade
-        ? `pear://${runtimeConfig.upgrade.replace(/^pear:\/\//, '')}`
-        : ''
+      applink: runtimeConfig.upgrade || ''
     }
   })
 
