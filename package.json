@@ -29,11 +29,10 @@
       "category": "public.app-category.utilities",
       "icon": "assets/darwin/icon.png",
       "target": "dmg",
-      "notarize": {
-        "tool": "notarytool",
-        "keychainProfile": "notary"
-      }
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
     },
+    "afterSign": "scripts/notarize.cjs",
     "dmg": {},
     "win": {
       "icon": "assets/win32/icon.png",
@@ -135,6 +134,7 @@
     "bare-pack": "1.4.8",
     "cmake-pear": "2.0.0",
     "concurrently": "9.2.1",
+    "@electron/notarize": "^2.2.1",
     "electron": "^33.0.0",
     "electron-builder": "23.6.0",
     "electron-reload": "^2.0.0-alpha.1",
