@@ -24,7 +24,7 @@ Options:
   -h, --help       Show this help message
 
 Example:
-  $(basename "$0") --local ./appling/PearPass.AppImage
+  $(basename "$0") --local ./dist/PearPass-1.6.0-arm64.AppImage
 EOF
     exit 0
 }
@@ -97,16 +97,26 @@ parse_args() {
 prepare_icon() {
     log_info "Extracting and resizing icon from AppImage ..."
     local tmpdir
+    local src_icon=""
     tmpdir="$(mktemp -d)"
     cp "$APPIMAGE_PATH" "$tmpdir/PearPass.AppImage"
     chmod +x "$tmpdir/PearPass.AppImage"
     (cd "$tmpdir" && ./PearPass.AppImage --appimage-extract >/dev/null 2>&1)
 
-    local src_icon="$tmpdir/squashfs-root/usr/share/icons/PearPass.png"
     local dst_icon="$FLATPAK_DIR/icon-512.png"
 
-    if [[ ! -f "$src_icon" ]]; then
-        log_error "Icon not found inside AppImage at usr/share/icons/PearPass.png"
+    for candidate in \
+        "$tmpdir/squashfs-root/resources/assets/linux/icon.png" \
+        "$tmpdir/squashfs-root/usr/share/icons/PearPass.png"
+    do
+        if [[ -f "$candidate" ]]; then
+            src_icon="$candidate"
+            break
+        fi
+    done
+
+    if [[ -z "$src_icon" ]]; then
+        log_error "Icon not found inside AppImage (checked resources/assets/linux/icon.png and usr/share/icons/PearPass.png)"
         rm -rf "$tmpdir"
         exit 1
     fi

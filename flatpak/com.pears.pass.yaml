@@ -15,7 +15,6 @@ finish-args:
   - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
-  - --env=LD_LIBRARY_PATH=/app/lib
 
 modules:
   - name: pearpass
@@ -25,23 +24,19 @@ modules:
       - chmod +x PearPass.AppImage
       - ./PearPass.AppImage --appimage-extract
 
-      # ── Install binary ────────────────────────────────────────────────
-      - install -Dm755 squashfs-root/usr/bin/pear-pass /app/bin/pear-pass
-
-      # ── Install native libraries ──────────────────────────────────────
-      - mkdir -p /app/lib
-      - cp -a squashfs-root/usr/lib/*.so* /app/lib/
-
-      # ── Install app bundle ────────────────────────────────────────────
-      - mkdir -p /app/share/pear-pass
-      - cp -r squashfs-root/usr/share/pear-pass/* /app/share/pear-pass/
+      # ── Install extracted AppImage payload ────────────────────────────
+      - mkdir -p /app/lib/pearpass
+      - cp -a squashfs-root/. /app/lib/pearpass/
 
       # ── Install wrapper script ────────────────────────────────────────
+      - mkdir -p /app/bin
       - |
         cat > /app/bin/pearpass <<'WRAPPER'
-        #!/bin/bash
-        export LD_LIBRARY_PATH="/app/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        exec /app/bin/pear-pass "$@"
+        #!/bin/sh
+        APP_ROOT="/app/lib/pearpass"
+        export LD_LIBRARY_PATH="$APP_ROOT${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        cd "$APP_ROOT"
+        exec "$APP_ROOT/pearpass-app-desktop" --no-sandbox "$@"
         WRAPPER
       - chmod +x /app/bin/pearpass
 
