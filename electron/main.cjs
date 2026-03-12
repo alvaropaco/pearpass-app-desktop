@@ -4,44 +4,24 @@
  * Electron main process: creates the window, starts pear-runtime (P2P OTA, bare workers, storage),
  * and registers secure IPC handlers so the renderer can use runtime and vault services.
  */
-const childProcess = require('child_process')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
 
-const { app, BrowserWindow, ipcMain, nativeImage, dialog } = require('electron')
-const { autoUpdater } = require('electron-updater')
+const { app, BrowserWindow, ipcMain, nativeImage } = require('electron')
+const PearRuntime = require('pear-runtime')
 const getPearRuntimeLegacyStorage = require('pear-runtime-legacy-storage')
+const { isLinux, isWindows, isMac } = require('which-runtime')
 
+const pkg = require('../package.json')
 const runtimeConfig = require('./runtime-config.cjs')
 const {
   createMainProcessLogger
 } = require('../src/utils/createMainProcessLogger.cjs')
 
-/**
- * Packaged app only: paths inside app.asar point at an archive file, so spawn() fails with ENOTDIR.
- * Rewrite any executable path that goes through app.asar to app.asar.unpacked (real filesystem).
- * Not applied in dev so we never touch spawn there.
- */
-function patchSpawnForPackagedApp() {
-  if (!app.isPackaged) return
-  const originalSpawn = childProcess.spawn
-  childProcess.spawn = function (command) {
-    if (
-      typeof command === 'string' &&
-      command.includes('app.asar') &&
-      !command.includes('app.asar.unpacked')
-    ) {
-      command = command.replace('app.asar', 'app.asar.unpacked')
-    }
-    return originalSpawn.apply(this, arguments)
-  }
-}
-
 const logger = createMainProcessLogger({ app, debugMode: true })
 
 // Enable auto-reload during development for main + renderer code
-if (process.env.NODE_ENV !== 'production') {
+if (!app.isPackaged) {
   try {
     // Watch the project root; electron-reload will restart Electron or
     // reload windows when files change. Renderer JS is rebuilt into dist/.
@@ -67,126 +47,16 @@ let workletSidecar = null
 /** @type {import('pearpass-lib-vault-core').PearpassVaultClient | null} */
 let vaultClient = null
 
-let autoUpdaterInitialized = false
-
-function initAutoUpdater() {
-  if (!app.isPackaged) {
-    logger.info('[MAIN]', 'Auto-updater: skipping in development mode')
-    return
-  }
-
-  if (autoUpdaterInitialized) return
-  autoUpdaterInitialized = true
-
-  autoUpdater.allowPrerelease = true
-  autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
-
-  autoUpdater.on('checking-for-update', () => {
-    logger.info('[MAIN]', 'Auto-updater: checking for update')
-  })
-
-  autoUpdater.on('update-available', (info) => {
-    logger.info(
-      '[MAIN]',
-      'Auto-updater: update available',
-      info && info.version
-    )
-  })
-
-  autoUpdater.on('update-not-available', (info) => {
-    logger.info(
-      '[MAIN]',
-      'Auto-updater: no update available',
-      info && info.version
-    )
-  })
-
-  autoUpdater.on('error', (err) => {
-    logger.error(
-      'MAIN',
-      'Auto-updater error:',
-      err && err.message ? err.message : err
-    )
-  })
-
-  autoUpdater.on('download-progress', (progress) => {
-    logger.info(
-      '[MAIN]',
-      'Auto-updater: download progress',
-      Math.round(progress.percent),
-      '%'
-    )
-  })
-
-  autoUpdater.on('update-downloaded', async (info) => {
-    logger.info(
-      '[MAIN]',
-      'Auto-updater: update downloaded',
-      info && info.version
-    )
-
-    try {
-      const result = await dialog.showMessageBox({
-        type: 'question',
-        buttons: ['Restart', 'Later'],
-        defaultId: 0,
-        cancelId: 1,
-        title: 'Update ready',
-        message: 'A new version of PearPass has been downloaded.',
-        detail:
-          'Restart now to apply the update, or later to keep using the current version.'
-      })
-
-      if (result.response === 0) {
-        autoUpdater.quitAndInstall()
-      }
-    } catch (err) {
-      logger.error(
-        'MAIN',
-        'Auto-updater: failed to show restart dialog:',
-        err && err.message ? err.message : err
-      )
-    }
-  })
-
-  try {
-    logger.info('[MAIN]', 'Auto-updater: checking for updates (startup)')
-    autoUpdater.checkForUpdates()
-  } catch (err) {
-    logger.error(
-      'MAIN',
-      'Auto-updater: failed to start update check:',
-      err && err.message ? err.message : err
-    )
-  }
-}
-
-function getAppPath() {
-  // Packaged app: app is inside .app or executable folder; return path to app root for renderer/worklet.
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'app.asar')
-  }
-  return app.getAppPath()
-}
 function getExecPath() {
-  // Path to the current app executable for pear-runtime-updater.
   if (!app.isPackaged) return null
-
-  logger.info('[MAIN]', 'process.resourcesPath: ', process.resourcesPath)
-  if (process.platform === 'darwin') {
-    // process.resourcesPath -> <App>.app/Contents/Resources
-    // App bundle root       -> <App>.app
-    return path.join(process.resourcesPath, '..', '..')
-  }
-
-  // For other platforms we can extend this later when needed
-  return null
+  if (isLinux && process.env.APPIMAGE) return process.env.APPIMAGE
+  if (isWindows) return process.execPath
+  return path.join(process.resourcesPath, '..', '..')
 }
 
 function getWorkletPath() {
   const workletDir = path.join(
-    'packages',
+    'node_modules',
     'pearpass-lib-vault-core',
     'src',
     'worklet'
@@ -194,24 +64,12 @@ function getWorkletPath() {
 
   if (app.isPackaged) {
     // Packaged: Bare runs .js as CJS, so use the CJS bundle from build.worklet.mjs
-    return path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      workletDir,
-      'app.cjs'
-    )
+    return path.join(process.resourcesPath, 'app', workletDir, 'app.cjs')
   }
 
   // Dev: ESM app.js so Bare's loader can resolve fs -> bare-fs etc.
   const appPath = app.getAppPath()
-  return path.join(
-    appPath,
-    'node_modules',
-    'pearpass-lib-vault-core',
-    'src',
-    'worklet',
-    'app.js'
-  )
+  return path.join(appPath, workletDir, 'app.js')
 }
 
 function getStorageDir() {
@@ -319,25 +177,21 @@ async function startRuntime() {
     )
   }
 
-  const runtimeDir = path.join(storageDir, 'pear-runtime')
-
   // to clear local vault/encryption data so the app starts from scratch.
   clearVaultStorageForDevReset(storageDir)
-  const fs = require('fs')
   const workletPath = getWorkletPath()
 
-  const PearRuntime = require('pear-runtime')
   const { PearpassVaultClient } = await import('pearpass-lib-vault-core')
+  const extension = isLinux ? '.AppImage' : isMac ? '.app' : '.msix'
 
   pearRuntime = new PearRuntime({
-    dir: runtimeDir,
+    // pear runtime doesn't care about pear (platform) directory
+    dir: storageDir,
     upgrade,
     version: runtimeConfig.version,
-    // For pear-runtime-updater: point at the installed .app bundle on macOS
     app: app.isPackaged ? getExecPath() : null,
-    // pear-build layout is now: /by-arch/<host>/app/PearPass.app
-    // so default name ("PearPass.app") matches without override.
-    bundled: !!app.isPackaged
+    bundled: !!app.isPackaged,
+    name: `${pkg.productName}${extension}`
   })
 
   await pearRuntime.ready()
@@ -385,25 +239,15 @@ async function startRuntime() {
   })
 
   pearRuntime.updater.on('updating', () => {
-    logger.info(
-      '[MAIN]',
-      'runtime:updating',
-      mainWindow,
-      mainWindow.isDestroyed()
-    )
     if (mainWindow && !mainWindow.isDestroyed()) {
+      logger.info('runtime:updating', 'sending updating event')
       mainWindow.webContents.send('runtime:updating')
     }
   })
 
   pearRuntime.updater.on('updated', () => {
-    logger.info(
-      '[MAIN]',
-      'runtime:updated',
-      mainWindow,
-      mainWindow.isDestroyed()
-    )
     if (mainWindow && !mainWindow.isDestroyed()) {
+      logger.info('runtime:updated', 'sending updated event')
       mainWindow.webContents.send('runtime:updated')
     }
   })
@@ -430,15 +274,13 @@ async function startWorkletOnly() {
   clearVaultStorageForDevReset(getStorageDir())
 
   // In packaged builds, Bare's module resolution uses the process cwd.
-  // Ensure the sidecar process starts with cwd pointing at app.asar.unpacked
-  // so it can resolve node_modules and the unpacked worklet sources.
   let previousCwd = null
   if (app.isPackaged) {
-    const unpackedRoot = path.join(process.resourcesPath, 'app.asar.unpacked')
-    if (fs.existsSync(unpackedRoot)) {
+    const appRoot = path.join(process.resourcesPath, 'app')
+    if (fs.existsSync(appRoot)) {
       previousCwd = process.cwd()
-      process.chdir(unpackedRoot)
-      logger.log('MAIN', 'Worklet cwd set to', unpackedRoot)
+      process.chdir(appRoot)
+      logger.log('MAIN', 'Worklet cwd set to', appRoot)
     }
   }
 
@@ -583,9 +425,7 @@ function registerIPC() {
       key: runtimeConfig.upgrade || null,
       upgrade: runtimeConfig.upgrade,
       version: runtimeConfig.version,
-      applink: runtimeConfig.upgrade
-        ? `pear://${runtimeConfig.upgrade.replace(/^pear:\/\//, '')}`
-        : ''
+      applink: runtimeConfig.upgrade || ''
     }
   })
 
@@ -593,13 +433,9 @@ function registerIPC() {
     logger.info(
       '[MAIN]',
       'runtime:applyUpdate',
-      pearRuntime,
-      typeof pearRuntime.applyUpdate === 'function'
+      pearRuntime?.updater?.applyUpdate
     )
-    if (pearRuntime && typeof pearRuntime.applyUpdate === 'function') {
-      logger.info('[MAIN]', 'runtime:applyUpdate')
-      return await pearRuntime?.updater?.applyUpdate()
-    }
+    return await pearRuntime.updater.applyUpdate()
   })
 
   ipcMain.handle('runtime:restart', async () => {
@@ -647,8 +483,6 @@ function registerIPC() {
 app.whenReady().then(async () => {
   app.setName('PearPass')
   logger.setLogPath(app.getPath('userData'))
-  patchSpawnForPackagedApp()
-  // initAutoUpdater() //electron
   registerIPC()
   try {
     await startRuntime()

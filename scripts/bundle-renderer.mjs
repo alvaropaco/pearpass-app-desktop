@@ -29,16 +29,22 @@ const ctx = await esbuild.context({
     '.mjs': 'js'
   },
   jsx: 'automatic',
+  alias: {
+    react: path.join(root, 'node_modules', 'react'),
+    'react-dom': path.join(root, 'node_modules', 'react-dom')
+  },
   external: [
     'fs',
     'path',
     'os',
     'net',
+    'crypto',
     'child_process',
     'fs/promises',
     'require-addon',
     'fs-native-extensions',
-    'sodium-native'
+    'sodium-native',
+    'crypto'
   ],
   logLevel: 'info'
 })

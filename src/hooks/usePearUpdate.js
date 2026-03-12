@@ -13,9 +13,7 @@ export const usePearUpdate = () => {
   const electronAPI = window.electronAPI
 
   const showUpdateRequiredModal = () => {
-    if (modalShownRef.current || !Pear.config.key) {
-      return
-    }
+    if (modalShownRef.current || !Pear.config.key) return
 
     setModal(
       html`<${UpdateRequiredModalContent} onUpdate=${handleUpdateApp} />`,
@@ -25,60 +23,49 @@ export const usePearUpdate = () => {
     modalShownRef.current = true
   }
 
-  const checkIfUpdated = async () => {
-    const update = await Pear.updated()
+  const onPearEvent = (name, listener) => {
+    if (!electronAPI) return () => {}
 
-    if (update) {
-      showUpdateRequiredModal()
-    }
-  }
-
-  const onPearUpdate = (update) => {
-    if (shouldIgnoreChanges(update?.diff)) {
-      return
+    if (name === 'updated') {
+      return electronAPI.onRuntimeUpdated(() => listener('updated'))
     }
 
-    // `key` is undefined in DEV mode.
-    if (!Pear.config.key) {
-      // Reload is necessary for hot-reload after TS compile.
-      Pear.reload()
-      return
-    }
-
-    showUpdateRequiredModal()
+    return () => {}
   }
 
   useEffect(() => {
-    checkIfUpdated()
-
-    Pear.updates(onPearUpdate)
-
-    // Electron main-driven update notifications (via preload)
-    if (electronAPI && typeof electronAPI.onRuntimeUpdated === 'function') {
-      const off = electronAPI.onRuntimeUpdated(() => {
+    // DEV: preserve hot-reload behaviour driven by Pear core.
+    const checkUpdated = async () => {
+      const isUpdated = await electronAPI.checkUpdated()
+      if (isUpdated) {
         showUpdateRequiredModal()
-      })
-      return () => {
-        off?.()
       }
+    }
+    checkUpdated()
+    if (!Pear.config.key) {
+      const onPearUpdate = () => {
+        Pear.reload()
+      }
+      Pear.updates(onPearUpdate)
+      return () => {
+        Pear.updates(() => {})
+      }
+    }
+
+    const offUpdated = onPearEvent('updated', async () => {
+      showUpdateRequiredModal()
+    })
+
+    return () => {
+      offUpdated?.()
     }
   }, [])
 }
 
-function shouldIgnoreChanges(diff) {
-  return diff?.every(
-    ({ key: file }) =>
-      file.startsWith('/src') ||
-      file.startsWith('/logs') ||
-      file.includes('pearpass-native-messaging.sock')
-  )
-}
-
 async function handleUpdateApp() {
   const electronAPI = window.electronAPI
-  if (!electronAPI) {
-    return
-  }
+  if (!electronAPI) return
+
   try {
     await electronAPI.applyUpdate()
   } catch (err) {

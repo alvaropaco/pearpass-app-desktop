@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
 const workletDir = path.join(
   root,
-  'packages',
+  'node_modules',
   'pearpass-lib-vault-core',
   'src',
   'worklet'
@@ -23,10 +23,11 @@ const workletDir = path.join(
 const externalizeNodeModules = {
   name: 'externalize-node-modules',
   setup(build) {
-    build.onResolve({ filter: /^[^./]/ }, (args) => ({
-      path: args.path,
-      external: true
-    }))
+    build.onResolve({ filter: /^[^./]/ }, (args) => {
+      // Skip Windows absolute paths (e.g. C:\, F:\)
+      if (/^[A-Za-z]:[/\\]/.test(args.path)) return null
+      return { path: args.path, external: true }
+    })
   }
 }
 
