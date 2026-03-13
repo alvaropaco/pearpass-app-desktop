@@ -34,9 +34,14 @@ modules:
         cat > /app/bin/pearpass <<'WRAPPER'
         #!/bin/sh
         APP_ROOT="/app/lib/pearpass"
+        export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}"
         export LD_LIBRARY_PATH="$APP_ROOT${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         cd "$APP_ROOT"
-        exec "$APP_ROOT/pearpass-app-desktop" --no-sandbox "$@"
+        exec "$APP_ROOT/pearpass-app-desktop" \
+          --no-sandbox \
+          --enable-features=UseOzonePlatform \
+          --ozone-platform-hint=auto \
+          "$@"
         WRAPPER
       - chmod +x /app/bin/pearpass
 
