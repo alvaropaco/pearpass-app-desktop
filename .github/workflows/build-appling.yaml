@@ -10,6 +10,33 @@ on:
     branches: [main, electron-migration]
 
 jobs:
+  version:
+    runs-on: ubuntu-22.04
+    if: github.repository_owner == 'tetherto'
+    outputs:
+      version: ${{ steps.meta.outputs.VERSION }}
+    strategy:
+      matrix:
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read & validate version
+        id: meta
+        run: |
+          set -euo pipefail
+          VERSION=$(jq -r '.version' package.json)
+          echo "VERSION=$VERSION"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Error: package.json version ('$VERSION') is not semantic versioning (MAJOR.MINOR.PATCH)."
+            exit 1
+          fi
+          TAG="v$VERSION"
+          echo "TAG=$TAG"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+
   build-linux:
     permissions:
       contents: write # to upload artifacts
@@ -261,10 +288,11 @@ jobs:
         shell: node {0}
   build-win32:
     permissions:
-      contents: write
+      contents: write # to upload artifacts
       actions: read
     needs: [version, linux, macos]
     if: github.ref == 'refs/heads/main'
+    runs-on: self-hosted # self-hosted signer
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
