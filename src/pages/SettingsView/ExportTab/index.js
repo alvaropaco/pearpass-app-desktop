@@ -39,8 +39,8 @@ export const ExportTab = () => {
   const [shouldExportEncrypted, setShouldExportEncrypted] = useState(false)
 
   const radioOptions = [
-    { label: t('csv'), value: 'csv' },
-    { label: t('json'), value: 'json' }
+    { label: t('CSV'), value: 'csv' },
+    { label: t('JSON (Recommended)'), value: 'json' }
   ]
 
   const handleSubmitExport = (vaultsToExport, encryptionPassword = null) => {
@@ -48,7 +48,7 @@ export const ExportTab = () => {
       handleExportJsonPerVaultTest(vaultsToExport, encryptionPassword)
     }
     if (exportType === 'csv') {
-      handleExportCSVPerVault(vaultsToExport, encryptionPassword)
+      handleExportCSVPerVault(vaultsToExport)
     }
   }
 
@@ -174,27 +174,23 @@ export const ExportTab = () => {
         options=${radioOptions}
         selectedOption=${exportType}
         onChange=${(type) => {
-          if (type === 'csv' && shouldExportEncrypted) {
-            setShouldExportEncrypted(false)
-          }
-
+          setShouldExportEncrypted(false)
           setExportType(type)
         }}
       />
 
-      <${SwitchWithLabel}
+      ${exportType === 'json' &&
+      html` <${SwitchWithLabel}
         description=${t(
-          'Encrypt the Vault file with the *specific encryption*'
+          'Protect your exported file so it can only be opened with the password you set'
         )}
-        label=${t('Encrypted file')}
+        label=${t('Protect with Password')}
         isOn=${shouldExportEncrypted}
         onChange=${() => {
-          setExportType('json')
-
           setShouldExportEncrypted((prev) => !prev)
         }}
         isLabelBold
-      />
+      />`}
 
       <${ActionsContainer}>
         <${ButtonPrimary} width="180px" onClick=${handleExport}>
