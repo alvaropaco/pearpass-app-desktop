@@ -232,8 +232,9 @@ export const CreateOrEditNoteModalContent = ({
           <${TextArea}
             testId="createoredit-textarea-note"
             dataId="note-content-textarea"
+            label=${i18n._('Note')}
             ...${register('note')}
-            placeholder=${i18n._('Write a comment...')}
+            placeholder=${i18n._('Write your note here')}
           />
         <//>
 

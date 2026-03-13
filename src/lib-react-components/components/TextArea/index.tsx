@@ -6,7 +6,8 @@ import {
   TextAreaWrapper,
   AdditionalItemsWrapper,
   TextAreaComponent,
-  ReportTextAreaComponent
+  ReportTextAreaComponent,
+  Label
 } from './styles'
 
 type Variant = 'default' | 'report'
@@ -18,6 +19,7 @@ interface Props {
   isDisabled?: boolean
   onClick?: (value: string) => void
   variant?: Variant
+  label?: string
   testId?: string
   dataId?: string
   additionalItems?: React.ReactNode
@@ -30,6 +32,7 @@ export const TextArea = ({
   isDisabled = false,
   onClick,
   variant = 'default',
+  label,
   testId = 'text-area',
   dataId,
   additionalItems
@@ -53,6 +56,7 @@ export const TextArea = ({
   return html`
     <${Wrapper} data-id=${dataId} onClick=${handleClick}>
       <${TextAreaWrapper}>
+        ${label && html`<${Label}>${label}</${Label}>`}
         <${TextAreaEl}
           data-testid=${testId}
           value=${value}
@@ -61,6 +65,7 @@ export const TextArea = ({
           readOnly=${isDisabled}
           isDisabled=${isDisabled}
           hasAdditionalItems=${!!additionalItems}
+          hasLabel=${!!label}
         />
         ${!!additionalItems && html`
           <${AdditionalItemsWrapper} onMouseDown=${(e: React.MouseEvent) => e.stopPropagation()}>

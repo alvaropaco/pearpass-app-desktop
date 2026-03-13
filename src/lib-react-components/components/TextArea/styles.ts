@@ -3,6 +3,7 @@ import styled, { css } from 'styled-components'
 interface TextAreaStyledProps {
   isDisabled?: boolean
   hasAdditionalItems?: boolean
+  hasLabel?: boolean
 }
 
 const textareaBaseStyles = css<TextAreaStyledProps>`
@@ -18,7 +19,7 @@ const textareaBaseStyles = css<TextAreaStyledProps>`
   color: ${({ theme }) => theme.colors.white.mode1};
   border: 1px solid ${({ theme }) => theme.colors.grey100.mode1};
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: ${({ hasLabel }) => (hasLabel ? '25px 10px 8px' : '8px 10px')};
   padding-right: ${({ hasAdditionalItems }) => (hasAdditionalItems ? '40px' : '10px')};
 
   &::placeholder {
@@ -37,7 +38,8 @@ const textareaBaseStyles = css<TextAreaStyledProps>`
 `
 
 export const TextAreaComponent = styled.textarea.withConfig({
-  shouldForwardProp: (prop: string) => !['isDisabled', 'hasAdditionalItems'].includes(prop)
+  shouldForwardProp: (prop: string) =>
+    !['isDisabled', 'hasAdditionalItems', 'hasLabel'].includes(prop)
 }) <TextAreaStyledProps>`
   ${textareaBaseStyles}
   height: 233px;
@@ -45,7 +47,8 @@ export const TextAreaComponent = styled.textarea.withConfig({
 `
 
 export const ReportTextAreaComponent = styled.textarea.withConfig({
-  shouldForwardProp: (prop: string) => !['isDisabled', 'hasAdditionalItems'].includes(prop)
+  shouldForwardProp: (prop: string) =>
+    !['isDisabled', 'hasAdditionalItems', 'hasLabel'].includes(prop)
 }) <TextAreaStyledProps>`
   ${textareaBaseStyles}
   height: 70px;
@@ -70,6 +73,18 @@ export const TextAreaWrapper = styled.div`
   flex: 1;
   position: relative;
   display: flex;
+`
+
+export const Label = styled.span`
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  pointer-events: none;
+  font-family: 'Inter';
+  font-size: 12px;
+  font-weight: 400;
+  color: ${({ theme }) => theme.colors.white.mode1};
+  z-index: 1;
 `
 
 export const AdditionalItemsWrapper = styled.div`
