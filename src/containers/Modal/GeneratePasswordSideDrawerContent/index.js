@@ -16,7 +16,7 @@ import { PasswordChecker } from './PasswordChecker'
 import { PasswordGenerator } from './PasswordGenerator'
 import { HeaderButtonWrapper, RadioWrapper, Wrapper } from './styles'
 import { useToast } from '../../../context/ToastContext'
-import { useCopyToClipboard } from '../../../hooks/useCopyToClipboard'
+import { useCopyToClipboard } from '../../../hooks/useCopyToClipboard.electron'
 import { ButtonLittle, CopyIcon } from '../../../lib-react-components'
 
 /**

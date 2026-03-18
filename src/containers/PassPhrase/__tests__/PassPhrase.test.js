@@ -66,7 +66,7 @@ jest.mock('../PassPhraseSettings', () => ({
 
 // Hooks
 const mockCopy = jest.fn()
-jest.mock('../../../hooks/useCopyToClipboard', () => ({
+jest.mock('../../../hooks/useCopyToClipboard.electron', () => ({
   useCopyToClipboard: () => ({ copyToClipboard: mockCopy })
 }))
 

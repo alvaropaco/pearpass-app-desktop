@@ -18,7 +18,7 @@ export const handleExportJsonPerVaultTest = async (
             encryptionPassword
           )
           return {
-            filename: vault.filename.replace('.json', '.pearpass'),
+            filename: vault?.filename,
             data: JSON.stringify(encryptedData, null, 2)
           }
         })
@@ -31,7 +31,7 @@ export const handleExportJsonPerVaultTest = async (
         filename: processedVaults[0].filename,
         content: processedVaults[0].data
       },
-      encryptionPassword ? 'pearpass' : 'json'
+      'json'
     )
   } else if (processedVaults.length > 1) {
     await downloadZip(processedVaults)

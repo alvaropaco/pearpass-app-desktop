@@ -7,20 +7,29 @@
 const fs = require('fs')
 const path = require('path')
 
-const { app, BrowserWindow, ipcMain, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, nativeImage, shell } = require('electron')
 const PearRuntime = require('pear-runtime')
 const getPearRuntimeLegacyStorage = require('pear-runtime-legacy-storage')
 const { isLinux, isWindows, isMac } = require('which-runtime')
-const { getSandboxSafePath } = require('./flatpak-paths.cjs')
+let debugMode = false
+
+;(async () => {
+  try {
+    const { DEBUG_MODE } = await import('../src/constants/appConstants.js')
+    debugMode = DEBUG_MODE
+  } catch {
+    // fall back to default debugMode = false
+  }
+})()
 
 const pkg = require('../package.json')
 const runtimeConfig = require('./runtime-config.cjs')
+const { getSandboxSafePath } = require('./flatpak-paths.cjs')
 const {
   createMainProcessLogger
 } = require('../src/utils/createMainProcessLogger.cjs')
 
-const logger = createMainProcessLogger({ app, debugMode: true })
-
+const logger = createMainProcessLogger({ app, debugMode })
 // Enable auto-reload during development for main + renderer code
 if (!app.isPackaged) {
   try {
@@ -51,7 +60,7 @@ let vaultClient = null
 function getExecPath() {
   if (!app.isPackaged) return null
   if (isLinux && process.env.APPIMAGE) return process.env.APPIMAGE
-  if (isWindows) return process.execPath
+  if (isWindows) return true
   return path.join(process.resourcesPath, '..', '..')
 }
 
@@ -230,7 +239,7 @@ async function startRuntime() {
   })
   await waitForWorkletReady(workletSidecar)
   vaultClient = new PearpassVaultClient(workletSidecar, storageDir, {
-    debugMode: true
+    debugMode
   })
 
   vaultClient.on('update', () => {
@@ -246,9 +255,10 @@ async function startRuntime() {
     }
   })
 
-  pearRuntime.updater.on('updated', () => {
+  pearRuntime.updater.on('updated', async () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       logger.info('runtime:updated', 'sending updated event')
+      await pearRuntime.updater.applyUpdate()
       mainWindow.webContents.send('runtime:updated')
     }
   })
@@ -319,7 +329,7 @@ async function startWorkletOnly() {
   })
   await waitForWorkletReady(workletSidecar)
   vaultClient = new PearpassVaultClient(workletSidecar, getStorageDir(), {
-    debugMode: true
+    debugMode
   })
 
   vaultClient.on('update', () => {
@@ -330,6 +340,7 @@ async function startWorkletOnly() {
 }
 
 function createWindow() {
+  const isV2 = runtimeConfig.designVersion === 2
   // Resolve app icon per-platform
   let iconPath = null
   if (process.platform === 'darwin') {
@@ -338,8 +349,8 @@ function createWindow() {
       : path.join(__dirname, '..', 'assets', 'darwin', 'icon.png')
   } else if (process.platform === 'win32') {
     iconPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'assets', 'win32', 'icon.png')
-      : path.join(__dirname, '..', 'assets', 'win32', 'icon.png')
+      ? path.join(process.resourcesPath, 'assets', 'win32', 'icon.ico')
+      : path.join(__dirname, '..', 'assets', 'win32', 'icon.ico')
   } else {
     iconPath = app.isPackaged
       ? path.join(process.resourcesPath, 'assets', 'linux', 'icon.png')
@@ -365,8 +376,15 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 1024,
+    ...(isMac && isV2
+      ? {
+          titleBarStyle: 'hidden',
+          trafficLightPosition: { x: 18, y: 12 }
+        }
+      : {}),
     backgroundColor: '#1F2430',
     icon: iconPath && iconImage && !iconImage.isEmpty() ? iconPath : undefined,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: true,
@@ -377,9 +395,57 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'))
 
+  // Open external links in the default browser instead of the Electron window
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const appUrl = mainWindow.webContents.getURL()
+    if (url !== appUrl) {
+      event.preventDefault()
+      shell.openExternal(url)
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+}
+
+function fromSerializableArg(data) {
+  if (data && typeof data === 'object' && data.__base64) {
+    return Buffer.from(data.__base64, 'base64')
+  }
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const out = {}
+    for (const k of Object.keys(data)) {
+      out[k] = fromSerializableArg(data[k])
+    }
+    return out
+  }
+  if (Array.isArray(data)) {
+    return data.map(fromSerializableArg)
+  }
+  return data
+}
+
+function toSerializableArg(value) {
+  if (Buffer.isBuffer(value)) {
+    return { __base64: value.toString('base64') }
+  }
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const out = {}
+    for (const k of Object.keys(value)) {
+      out[k] = toSerializableArg(value[k])
+    }
+    return out
+  }
+  if (Array.isArray(value)) {
+    return value.map(toSerializableArg)
+  }
+  return value
 }
 
 function registerIPC() {
@@ -441,8 +507,12 @@ function registerIPC() {
 
   ipcMain.handle('runtime:restart', async () => {
     logger.info('[MAIN]', 'runtime:restart')
-    app.relaunch()
-    app.exit(0)
+    if (isMac || isLinux) {
+      app.relaunch()
+      app.exit(0)
+    } else {
+      app.exit(0)
+    }
   })
 
   ipcMain.handle(
@@ -459,18 +529,10 @@ function registerIPC() {
       throw new Error(`Unknown vault method: ${method}`)
     }
     const rawArgs = args || []
-    const deserialized = rawArgs.map((arg) => {
-      if (arg && typeof arg === 'object' && arg.__base64) {
-        return Buffer.from(arg.__base64, 'base64')
-      }
-      return arg
-    })
+    const deserialized = rawArgs.map(fromSerializableArg)
     try {
-      let result = await fn.apply(vaultClient, deserialized)
-      if (Buffer.isBuffer(result)) {
-        result = { __base64: result.toString('base64') }
-      }
-      return { ok: true, data: result }
+      const result = await fn.apply(vaultClient, deserialized)
+      return { ok: true, data: toSerializableArg(result) }
     } catch (err) {
       return {
         ok: false,
