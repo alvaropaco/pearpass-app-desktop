@@ -1,70 +1,71 @@
-name: Electron-builder Build
+name: Desktop Build
 
 on:
   push:
-    branches: [main, dev, staging, electron-migration]
+    branches: [main, dev, staging]
 
 jobs:
-  build-linux:
+  build-flatpak:
     permissions:
-      contents: write # to upload artifacts
+      contents: read
     strategy:
       matrix:
         include:
           - arch: x64
-            runs_on: ubuntu-latest
+            runs_on: ubuntu-24.04
           - arch: arm64
-            runs_on: ubuntu-latest
+            runs_on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Flatpak build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder jq ffmpeg
+
+      - name: Install Flatpak runtime and SDK
+        run: |
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.gnome.Platform//49 org.gnome.Sdk//49
+
       - name: Install dependencies
         run: |
-          npm install
+          npm ci
+
       - name: Build application
         env:
           PEARPASS_UPGRADE_LINK: ${{ vars.PEARPASS_UPGRADE_LINK }}
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           npm run dist:linux:${{ matrix.arch }}
 
-      - name: "Install @actions/artifact module"
-        id: install-actions-artifact-module
+      - name: Build Flatpak bundle
         run: |
-          npm install @actions/artifact@2.3.2 --global
-          echo "NODE_PATH=$(npm root --quiet -g)" >> $GITHUB_ENV
+          ./scripts/build-flatpak.sh --local ./dist/PearPass.AppImage --arch ${{ matrix.arch }}
 
-      - name: "Extract Actions runtime variables"
-        id: extract-runtime-environment-variables
-        uses: actions/github-script@v7
-        env:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Flatpak artifact metadata
+        id: flatpak-artifact
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUNDLE="build/flatpak/pearpass_${VERSION}_${{ matrix.arch }}.flatpak"
+          sha256sum "$BUNDLE" > "$BUNDLE.sha256"
+          echo "bundle=$BUNDLE" >> "$GITHUB_OUTPUT"
+          echo "checksum=$BUNDLE.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL'])
-            core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
-
-      - name: "Upload AppImage artifact"
-        id: upload-artifacts
-        run: |
-          const fs = require('fs');
-          const path = require('path');
-          const { DefaultArtifactClient } = require('@actions/artifact');
-
-          const arch = '${{ matrix.arch }}';
-          const file = `out/linux-${arch}/PearPass.AppImage`;
-          const name = `PearPass-${arch}.AppImage`;
-
-          if (!fs.existsSync(file)) {
-            throw new Error(`Expected AppImage not found at ${file}`);
-          }
-
-          const artifact = new DefaultArtifactClient();
-          console.log(`Uploading Linux ${arch} AppImage: ${name} from ${file}`);
-          artifact.uploadArtifact(name, [file], path.dirname(file));
-        shell: node {0}
+          name: pearpass-flatpak-${{ matrix.arch }}
+          path: |
+            ${{ steps.flatpak-artifact.outputs.bundle }}
+            ${{ steps.flatpak-artifact.outputs.checksum }}
+          if-no-files-found: error
+          compression-level: 0
 
   build-macos:
     permissions:
