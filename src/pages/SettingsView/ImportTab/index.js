@@ -1,5 +1,4 @@
-import { html } from 'htm/react'
-import { MAX_IMPORT_RECORDS } from 'pearpass-lib-constants'
+import { MAX_IMPORT_RECORDS } from '@tetherto/pearpass-lib-constants'
 import {
   decryptKeePassKdbx,
   parse1PasswordData,
@@ -9,8 +8,12 @@ import {
   parseNordPassData,
   parsePearPassData,
   parseProtonPassData
-} from 'pearpass-lib-data-import'
-import { decryptExportData, useCreateRecord } from 'pearpass-lib-vault'
+} from '@tetherto/pearpass-lib-data-import'
+import {
+  decryptExportData,
+  useCreateRecord
+} from '@tetherto/pearpass-lib-vault'
+import { html } from 'htm/react'
 
 import { ContentContainer, Description, ImportOptionsContainer } from './styles'
 import { readFileContent } from './utils/readFileContent'
@@ -43,14 +46,14 @@ const importOptions = [
     type: 'keepass',
     testId: 'settings-import-keepass',
     accepts: ['.kdbx', '.csv', '.xml'],
-    imgSrc: '/assets/images/KeePass.png'
+    imgSrc: 'assets/images/KeePass.png'
   },
   {
     title: 'KeePassXC',
     type: 'keepass',
     testId: 'settings-import-keepassxc',
     accepts: ['.csv', '.xml'],
-    imgSrc: '/assets/images/KeePassXC.png'
+    imgSrc: 'assets/images/KeePassXC.png'
   },
   {
     title: 'LastPass',
@@ -76,8 +79,8 @@ const importOptions = [
   {
     title: 'Encrypted file',
     type: 'encrypted',
-    accepts: ['.pearpass'],
-    imgSrc: '/assets/images/pearpass_logo.png'
+    accepts: ['.json'],
+    imgSrc: 'assets/images/pearpass_logo.png'
   },
   {
     title: 'Unencrypted file',

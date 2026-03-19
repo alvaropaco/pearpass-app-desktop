@@ -44,6 +44,16 @@ function fromSerializableData(data) {
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
     return typeof Buffer !== 'undefined' ? Buffer.from(bytes) : bytes
   }
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const out = {}
+    for (const k of Object.keys(data)) {
+      out[k] = fromSerializableData(data[k])
+    }
+    return out
+  }
+  if (Array.isArray(data)) {
+    return data.map(fromSerializableData)
+  }
   return data
 }
 
@@ -95,14 +105,18 @@ const VAULT_METHODS = [
   'activeVaultAddFile',
   'activeVaultGetFile',
   'beginBackground',
-  'endBackground'
+  'endBackground',
+  'generateOtpCodesByIds',
+  'generateHotpNext',
+  'addOtpToRecord',
+  'removeOtpFromRecord'
 ]
 
 /**
  * Creates a proxy that implements the vault client interface over IPC.
  * Extends EventEmitter so removeAllListeners, removeListener, on, once, etc. are always available.
  * @param {{ vaultInvoke: (method: string, args: any[]) => Promise<{ok: boolean, data?: any, error?: string}>, vaultOnUpdate: (cb: () => void) => () => void }} api
- * @returns {import('pearpass-lib-vault-core').PearpassVaultClient}
+ * @returns {import('@tetherto/pearpass-lib-vault-core').PearpassVaultClient}
  */
 export function createElectronVaultClientProxy(api) {
   class ElectronVaultClientProxy extends EventEmitter {

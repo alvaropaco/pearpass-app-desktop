@@ -1,46 +1,21 @@
 name: Electron-builder Build
 
-permissions:
-  contents: read
-  packages: read
-  actions: write
-
 on:
   push:
-    branches: [main, electron-migration]
+    branches: [main, dev, staging, electron-migration]
 
 jobs:
-  version:
-    runs-on: ubuntu-22.04
-    if: github.repository_owner == 'tetherto'
-    outputs:
-      version: ${{ steps.meta.outputs.VERSION }}
-    strategy:
-      matrix:
-        arch:
-          - x64
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Read & validate version
-        id: meta
-        run: |
-          set -euo pipefail
-          VERSION=$(jq -r '.version' package.json)
-          echo "VERSION=$VERSION"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Error: package.json version ('$VERSION') is not semantic versioning (MAJOR.MINOR.PATCH)."
-            exit 1
-          fi
-          TAG="v$VERSION"
-          echo "TAG=$TAG"
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
-
   build-linux:
     permissions:
       contents: write # to upload artifacts
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runs_on: ubuntu-latest
+          - arch: arm64
+            runs_on: ubuntu-latest
+    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,153 +25,60 @@ jobs:
       - name: Build application
         env:
           PEARPASS_UPGRADE_LINK: ${{ vars.PEARPASS_UPGRADE_LINK }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          npm run dist:linux
+          npm run dist:linux:${{ matrix.arch }}
 
       - name: "Install @actions/artifact module"
         id: install-actions-artifact-module
         run: |
           npm install @actions/artifact@2.3.2 --global
           echo "NODE_PATH=$(npm root --quiet -g)" >> $GITHUB_ENV
-      
-      - name: Find & rename AppImage file
-        id: find_file
-        run: |
-          set -euo pipefail
-          APPIMAGE_PATH=$(find "$GITHUB_WORKSPACE" -name "*.AppImage" -type f | head -n 1)
-          echo "Original AppImage: $APPIMAGE_PATH"
 
-          NEW_NAME="PearPass-Desktop-Linux-${{ matrix.arch }}-v${{ needs.version.outputs.version }}.AppImage"
-          NEW_PATH="$GITHUB_WORKSPACE/$NEW_NAME"
-
-          mv "$APPIMAGE_PATH" "$NEW_PATH"
-          echo "Renamed AppImage to: $NEW_PATH"
-
-          echo "APPIMAGE_PATH=$NEW_PATH" >> "$GITHUB_OUTPUT"
-
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
-
-      - name: Create binary tar.gz archive
-        id: create_tarball
-        run: |
-          set -euo pipefail
-          VERSION="${{ needs.version.outputs.version }}"
-          ARCH="${{ matrix.arch }}"
-          APPIMAGE_PATH="${{ steps.find_file.outputs.APPIMAGE_PATH }}"
-
-          # Create extraction directory
-          EXTRACT_DIR="$GITHUB_WORKSPACE/appimage-extract"
-          mkdir -p "$EXTRACT_DIR"
-
-          # Extract AppImage contents
-          cd "$EXTRACT_DIR"
-          chmod +x "$APPIMAGE_PATH"
-          "$APPIMAGE_PATH" --appimage-extract
-
-          # Create tarball staging directory with consistent structure
-          TARBALL_DIR="$GITHUB_WORKSPACE/tarball-staging"
-          mkdir -p "$TARBALL_DIR/lib"
-          mkdir -p "$TARBALL_DIR/pear-pass"
-
-          # Find and copy the main binary
-          BINARY_PATH=$(find squashfs-root -name "pear-pass" -type f -executable | head -n 1)
-          if [[ -z "$BINARY_PATH" ]]; then
-            BINARY_PATH=$(find squashfs-root -name "pearpass" -type f -executable | head -n 1)
-          fi
-          if [[ -n "$BINARY_PATH" ]]; then
-            cp "$BINARY_PATH" "$TARBALL_DIR/pearpass"
-            chmod +x "$TARBALL_DIR/pearpass"
-            echo "Copied binary from: $BINARY_PATH"
-          else
-            echo "❌ Error: Could not find main binary in AppImage"
-            find squashfs-root -type f -executable
-            exit 1
-          fi
-
-          # Find and copy app.bundle
-          BUNDLE_PATH=$(find squashfs-root -name "app.bundle" -type f | head -n 1)
-          if [[ -n "$BUNDLE_PATH" ]]; then
-            cp "$BUNDLE_PATH" "$TARBALL_DIR/pear-pass/app.bundle"
-            echo "Copied app.bundle from: $BUNDLE_PATH"
-          else
-            echo "⚠️ Warning: app.bundle not found in AppImage"
-          fi
-
-          # Find and copy native .so libraries
-          find squashfs-root -name "*.so" -type f | while read -r so_file; do
-            cp "$so_file" "$TARBALL_DIR/lib/"
-            echo "Copied library: $so_file"
-          done
-
-          # List the contents for verification
-          echo "=== Tarball contents ==="
-          find "$TARBALL_DIR" -type f
-
-          # Create the tarball
-          cd "$TARBALL_DIR"
-          TARBALL_NAME="PearPass.linux.${ARCH}.bin.tar.gz"
-          tar -czvf "$GITHUB_WORKSPACE/$TARBALL_NAME" .
-
-          echo "TARBALL_PATH=$GITHUB_WORKSPACE/$TARBALL_NAME" >> "$GITHUB_OUTPUT"
-          echo "Created tarball: $GITHUB_WORKSPACE/$TARBALL_NAME"
-
-      - uses: actions/upload-artifact@v4
-        if: ${{ steps.find_file.outputs.APPIMAGE_PATH != '' }}
+      - name: "Extract Actions runtime variables"
+        id: extract-runtime-environment-variables
+        uses: actions/github-script@v7
+        env:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL'])
             core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
-            
-      - name: "Upload folders as artifacts"
+
+      - name: "Upload AppImage artifact"
         id: upload-artifacts
         run: |
           const fs = require('fs');
           const path = require('path');
           const { DefaultArtifactClient } = require('@actions/artifact');
 
-      - uses: actions/upload-artifact@v4
-        if: ${{ steps.create_tarball.outputs.TARBALL_PATH != '' }}
-        with:
-          name: PearPass.linux.${{ matrix.arch }}.bin.tar.gz
-          path: "${{ steps.create_tarball.outputs.TARBALL_PATH }}"
+          const arch = '${{ matrix.arch }}';
+          const file = `out/linux-${arch}/PearPass.AppImage`;
+          const name = `PearPass-${arch}.AppImage`;
 
-      - name: Upload tarball to static.tether.dev
-        if: ${{ steps.create_tarball.outputs.TARBALL_PATH != '' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/staging') }}
-        env:
-          CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
-          CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
-          CLOUDFLARE_R2_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_ENDPOINT }}
-          CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
-        run: |
-          # Install AWS CLI for S3-compatible uploads
-          sudo apt-get update && sudo apt-get install -y awscli
+          if (!fs.existsSync(file)) {
+            throw new Error(`Expected AppImage not found at ${file}`);
+          }
 
-          # Upload to Cloudflare R2 (or S3-compatible storage)
-          aws s3 cp "${{ steps.create_tarball.outputs.TARBALL_PATH }}" \
-            "s3://${CLOUDFLARE_R2_BUCKET}/pearpass/PearPass.linux.${{ matrix.arch }}.bin.tar.gz" \
-            --endpoint-url "${CLOUDFLARE_R2_ENDPOINT}" \
-            --region auto \
-            --acl public-read
+          const artifact = new DefaultArtifactClient();
+          console.log(`Uploading Linux ${arch} AppImage: ${name} from ${file}`);
+          artifact.uploadArtifact(name, [file], path.dirname(file));
+        shell: node {0}
 
-          echo "✓ Uploaded tarball to static.tether.dev"
-
-  macos:
-    runs-on: macos-14
-    needs: [version]
+  build-macos:
+    permissions:
+      contents: write # to upload artifacts
     strategy:
       matrix:
-        arch:
-          - x64
-          - arm64
-    defaults:
-      run:
-        working-directory: ./appling
-    env:
-      # Apple code signing identity - used for app, installer, and DMG signing
-      APPLE_SIGNING_IDENTITY: "959D2C8BB8323AEF9C2367ACA2F854AE4D7DE458"
-      APP_FILE: ${{ github.ref == 'refs/heads/main' && 'app' || github.ref == 'refs/heads/staging' && 'app.staging' || 'app.dev' }}.cjs
+        include:
+          - arch: arm64
+            runs_on: macos-latest
+            dmg_suffix: "-arm64"
+          - arch: x64
+            runs_on: macos-latest
+            dmg_suffix: ""
+    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -245,15 +127,15 @@ jobs:
           PEARPASS_UPGRADE_LINK: ${{ vars.PEARPASS_UPGRADE_LINK }}
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          npm run dist:mac:ci
+          npm run dist:mac:ci:${{ matrix.arch }}
 
       - name: "Install @actions/artifact module"
         id: install-actions-artifact-module
         run: |
           npm install @actions/artifact@2.3.2 --global
           echo "NODE_PATH=$(npm root --quiet -g)" >> $GITHUB_ENV
-      
-      - name: "Extract Actions runtime variables" 
+
+      - name: "Extract Actions runtime variables"
         id: extract-runtime-environment-variables
         uses: actions/github-script@v7
         env:
@@ -263,8 +145,8 @@ jobs:
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL'])
             core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
-            
-      - name: "Upload folders as artifacts"
+
+      - name: "Upload macOS DMG artifact"
         id: upload-artifacts
         run: |
           const fs = require('fs');
@@ -275,7 +157,7 @@ jobs:
           const productName = pkg.productName;
           const version = pkg.version;
 
-          const dmgName = `${productName}-${version}-arm64.dmg`;
+          const dmgName = `${productName}-${version}${{ matrix.dmg_suffix }}.dmg`;
           const dmgPath = path.join('dist', dmgName);
 
           if (!fs.existsSync(dmgPath)) {
@@ -283,15 +165,13 @@ jobs:
           }
 
           const artifact = new DefaultArtifactClient();
-          console.log(`Uploading macOS DMG: ${dmgName} from ${dmgPath}`);
+          console.log(`Uploading macOS ${{ matrix.arch }} DMG: ${dmgName} from ${dmgPath}`);
           artifact.uploadArtifact(dmgName, [dmgPath], 'dist');
         shell: node {0}
+
   build-win32:
     permissions:
       contents: write # to upload artifacts
-      actions: read
-    needs: [version, linux, macos]
-    if: github.ref == 'refs/heads/main'
     runs-on: self-hosted # self-hosted signer
     steps:
       - uses: actions/checkout@v4
@@ -312,8 +192,8 @@ jobs:
         run: |
           npm install @actions/artifact@2.3.2 --global
           echo "NODE_PATH=$(npm root --quiet -g)" >> $GITHUB_ENV
-      
-      - name: "Extract Actions runtime variables" 
+
+      - name: "Extract Actions runtime variables"
         id: extract-runtime-environment-variables
         uses: actions/github-script@v7
         env:
@@ -323,8 +203,8 @@ jobs:
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL'])
             core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
-            
-      - name: "Upload folders as artifacts"
+
+      - name: "Upload Windows MSIX artifact"
         id: upload-artifacts
         env:
           NODE_PATH: ${{ env.NODE_PATH }}
@@ -333,27 +213,17 @@ jobs:
           const path = require('path');
           const { DefaultArtifactClient } = require('@actions/artifact');
 
-          const artifact = new DefaultArtifactClient()
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const productName = pkg.productName || pkg.name;
 
-          function listFilesRecursive (dir) {
-            let results = []
-            const list = fs.readdirSync(dir)
-            list.forEach(function (file) {
-              const filePath = path.join(dir, file)
-              const stat = fs.statSync(filePath)
-              if (stat && stat.isDirectory()) {
-                results = results.concat(listFilesRecursive(filePath))
-              } else if (stat && stat.isFile()) {
-                results.push(filePath)
-              }
-            })
-            return results
+          const msixName = `${productName}.msix`;
+          const msixPath = path.join('out', productName, msixName);
+
+          if (!fs.existsSync(msixPath)) {
+            throw new Error(`Expected MSIX not found at ${msixPath}`);
           }
 
-          const files = listFilesRecursive('out/make')
-          files.forEach(file => {
-            const artifactName = path.basename(file)
-            console.log(`Uploading artifact: ${artifactName} from ${file}`)
-            artifact.uploadArtifact(artifactName, [file], './out/make')
-          })
+          const artifact = new DefaultArtifactClient();
+          console.log(`Uploading Windows MSIX: ${msixName} from ${msixPath}`);
+          artifact.uploadArtifact(msixName, [msixPath], path.dirname(msixPath));
         shell: node {0}

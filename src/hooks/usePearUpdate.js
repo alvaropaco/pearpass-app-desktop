@@ -65,13 +65,5 @@ export const usePearUpdate = () => {
 async function handleUpdateApp() {
   const electronAPI = window.electronAPI
   if (!electronAPI) return
-
-  try {
-    await electronAPI.applyUpdate()
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to apply pear runtime update', err)
-  } finally {
-    electronAPI.restart()
-  }
+  electronAPI.restart()
 }
