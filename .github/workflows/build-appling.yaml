@@ -1,4 +1,4 @@
-name: Electron-builder Build
+name: Desktop Build
 
 on:
   push:
@@ -68,59 +68,97 @@ jobs:
 
   build-flatpak:
     permissions:
-      contents: write # to upload artifacts
-    runs-on: ubuntu-latest
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runs_on: ubuntu-24.04
+          - arch: arm64
+            runs_on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Flatpak build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder jq ffmpeg xvfb xauth
+
+      - name: Install Flatpak runtime and SDK
+        run: |
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.gnome.Platform//49 org.gnome.Sdk//49
+
       - name: Install dependencies
         run: |
-          npm install
-      - name: Build Flatpak
+          npm ci
+
+      - name: Build application
         env:
           PEARPASS_UPGRADE_LINK: ${{ vars.PEARPASS_UPGRADE_LINK }}
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          npm run dist:flatpak
+          npm run dist:linux:${{ matrix.arch }}
 
-      - name: "Install @actions/artifact module"
-        id: install-actions-artifact-module
+      - name: Build Flatpak bundle
         run: |
-          npm install @actions/artifact@2.3.2 --global
-          echo "NODE_PATH=$(npm root --quiet -g)" >> $GITHUB_ENV
+          ./scripts/build-flatpak.sh --local ./dist/PearPass.AppImage --arch ${{ matrix.arch }}
 
-      - name: "Extract Actions runtime variables"
-        id: extract-runtime-environment-variables
-        uses: actions/github-script@v7
-        env:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Smoke test Flatpak bundle
+        run: |
+          set -euo pipefail
+          LOG_FILE="build/flatpak/smoke-${{ matrix.arch }}.log"
+
+          set +e
+          timeout 90s xvfb-run -a --server-args="-screen 0 1440x1024x24" \
+            flatpak-builder --run build/flatpak/build-dir flatpak/com.pears.pass.yaml \
+            sh -lc 'ELECTRON_ENABLE_LOGGING=1 /app/bin/pearpass --disable-gpu --disable-dev-shm-usage --enable-logging=stderr' \
+            >"$LOG_FILE" 2>&1
+          STATUS=$?
+          set -e
+
+          if [ "$STATUS" -ne 0 ] && [ "$STATUS" -ne 124 ]; then
+            cat "$LOG_FILE"
+            exit "$STATUS"
+          fi
+
+          if ! grep -Eq 'WORKLET_READY|STORAGE_PATH_SET|MASTER_VAULT_GET_STATUS|ENCRYPTION_GET_STATUS' "$LOG_FILE"; then
+            cat "$LOG_FILE"
+            echo 'Flatpak smoke test did not reach the expected startup markers.'
+            exit 1
+          fi
+
+      - name: Prepare Flatpak artifact metadata
+        id: flatpak-artifact
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUNDLE="build/flatpak/pearpass_${VERSION}_${{ matrix.arch }}.flatpak"
+          sha256sum "$BUNDLE" > "$BUNDLE.sha256"
+          echo "bundle=$BUNDLE" >> "$GITHUB_OUTPUT"
+          echo "checksum=$BUNDLE.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL'])
-            core.exportVariable('ACTIONS_RUNTIME_URL', process.env['ACTIONS_RUNTIME_URL'])
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
+          name: pearpass-flatpak-${{ matrix.arch }}
+          path: |
+            ${{ steps.flatpak-artifact.outputs.bundle }}
+            ${{ steps.flatpak-artifact.outputs.checksum }}
+          if-no-files-found: error
+          compression-level: 0
 
-      - name: "Upload Flatpak artifact"
-        id: upload-artifacts
-        run: |
-          const fs = require('fs');
-          const path = require('path');
-          const { DefaultArtifactClient } = require('@actions/artifact');
-
-          const distDir = 'dist';
-          const files = fs.readdirSync(distDir).filter((file) => file.endsWith('.flatpak'));
-
-          if (files.length === 0) {
-            throw new Error(`No .flatpak artifact found in ${distDir}`);
-          }
-
-          const artifact = new DefaultArtifactClient();
-          for (const fileName of files) {
-            const filePath = path.join(distDir, fileName);
-            console.log(`Uploading Flatpak artifact: ${fileName} from ${filePath}`);
-            artifact.uploadArtifact(fileName, [filePath], distDir);
-          }
-        shell: node {0}
+      - name: Upload Flatpak smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pearpass-flatpak-smoke-${{ matrix.arch }}
+          path: build/flatpak/smoke-${{ matrix.arch }}.log
+          if-no-files-found: warn
 
   build-macos:
     permissions:
