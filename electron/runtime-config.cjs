@@ -3,6 +3,7 @@
  */
 const fs = require('fs')
 const path = require('path')
+
 const pkg = require('../package.json')
 
 function readDesignVersion() {
@@ -11,7 +12,7 @@ function readDesignVersion() {
       __dirname,
       '..',
       'node_modules',
-      'pearpass-lib-constants',
+      '@tetherto/pearpass-lib-constants',
       'src',
       'constants',
       'flags.js'

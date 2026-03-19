@@ -2,9 +2,9 @@ import os from 'os'
 
 import { useEffect, useState } from 'react'
 
+import { colors } from '@tetherto/pearpass-lib-ui-theme-provider'
+import { usePair, useVault } from '@tetherto/pearpass-lib-vault'
 import { html } from 'htm/react'
-import { colors } from 'pearpass-lib-ui-theme-provider'
-import { usePair, useVault } from 'pearpass-lib-vault'
 
 import {
   Header,
