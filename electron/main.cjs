@@ -33,7 +33,7 @@ let debugMode = false
 })()
 
 const pkg = require('../package.json')
-const { getSandboxSafePath } = require('./flatpak-paths.cjs')
+const { getSandboxSafePath, isFlatpakRuntime } = require('./flatpak-paths.cjs')
 const runtimeConfig = require('./runtime-config.cjs')
 const {
   createMainProcessLogger
@@ -94,6 +94,44 @@ function getWorkletPath() {
 
 function getStorageDir() {
   return getSandboxSafePath(app.getPath('userData'))
+}
+
+async function resolveRuntimeStorageDir(upgrade) {
+  let storageDir = getStorageDir()
+  const linkId = upgrade.replace(/^pear:\/\//, '')
+
+  if (isFlatpakRuntime()) {
+    storageDir = path.join(storageDir, 'app-storage', 'by-dkey', linkId)
+    logger.info('[MAIN]', 'Using Flatpak per-link storage root:', storageDir)
+    return storageDir
+  }
+
+  try {
+    const pearStorageDir = await getPearRuntimeLegacyStorage(upgrade)
+    if (pearStorageDir) {
+      storageDir = getSandboxSafePath(pearStorageDir)
+      logger.info('[MAIN]', 'Using pear legacy storage root:', storageDir)
+    } else {
+      storageDir = path.join(storageDir, 'app-storage', 'by-dkey', linkId)
+      logger.warn(
+        'MAIN',
+        'pear-runtime-legacy-storage returned null; using per-link Electron storage:',
+        storageDir
+      )
+    }
+  } catch (err) {
+    storageDir = path.join(getStorageDir(), 'app-storage', 'by-dkey', linkId)
+    logger.warn(
+      'MAIN',
+      'Failed to resolve legacy pear storage for upgrade link, using per-link Electron storage:',
+      upgrade,
+      err && err.message ? err.message : err,
+      'storageDir=',
+      storageDir
+    )
+  }
+
+  return storageDir
 }
 
 function getNativeBridgePath() {
@@ -181,33 +219,8 @@ async function startRuntime() {
   //    use that path for full compatibility.
   // 2) Otherwise, fall back to an Electron-owned per-link directory under
   //    userData so multiple links can coexist on the same machine.
-  let storageDir = getStorageDir()
-  try {
-    const pearStorageDir = await getPearRuntimeLegacyStorage(upgrade)
-    if (pearStorageDir) {
-      storageDir = getSandboxSafePath(pearStorageDir)
-      logger.info('[MAIN]', 'Using pear legacy storage root:', storageDir)
-    } else {
-      const linkId = upgrade.replace(/^pear:\/\//, '')
-      storageDir = path.join(storageDir, 'app-storage', 'by-dkey', linkId)
-      logger.warn(
-        'MAIN',
-        'pear-runtime-legacy-storage returned null; using per-link Electron storage:',
-        storageDir
-      )
-    }
-  } catch (err) {
-    const linkId = upgrade.replace(/^pear:\/\//, '')
-    storageDir = path.join(getStorageDir(), 'app-storage', 'by-dkey', linkId)
-    logger.warn(
-      'MAIN',
-      'Failed to resolve legacy pear storage for upgrade link, using per-link Electron storage:',
-      upgrade,
-      err && err.message ? err.message : err,
-      'storageDir=',
-      storageDir
-    )
-  }
+  const storageDir = await resolveRuntimeStorageDir(upgrade)
+  console.info('STORAGE_PATH_SET', storageDir)
 
   // to clear local vault/encryption data so the app starts from scratch.
   clearVaultStorageForDevReset(storageDir)
@@ -262,6 +275,7 @@ async function startRuntime() {
     logger.error('MAIN', '[worklet process error]', err)
   })
   await waitForWorkletReady(workletSidecar)
+  console.info(WORKLET_READY_SIGNAL)
   vaultClient = new PearpassVaultClient(workletSidecar, storageDir, {
     debugMode
   })
@@ -486,31 +500,7 @@ function registerIPC() {
     let storage = getStorageDir()
 
     if (upgrade) {
-      try {
-        const pearStorageDir = await getPearRuntimeLegacyStorage(upgrade)
-        if (pearStorageDir) {
-          storage = getSandboxSafePath(pearStorageDir)
-        } else {
-          const linkId = upgrade.replace(/^pear:\/\//, '')
-          storage = path.join(storage, 'app-storage', 'by-dkey', linkId)
-          logger.warn(
-            'MAIN',
-            'runtime:getConfig: legacy storage not found; using per-link Electron storage:',
-            storage
-          )
-        }
-      } catch (err) {
-        const linkId = upgrade.replace(/^pear:\/\//, '')
-        storage = path.join(storage, 'app-storage', 'by-dkey', linkId)
-        logger.warn(
-          'MAIN',
-          'runtime:getConfig: failed to resolve legacy pear storage for upgrade link, using per-link Electron storage:',
-          upgrade,
-          err && err.message ? err.message : err,
-          'storage=',
-          storage
-        )
-      }
+      storage = await resolveRuntimeStorageDir(upgrade)
     }
 
     return {
