@@ -44,6 +44,7 @@ modules:
           --no-sandbox \
           --disable-gpu \
           --disable-gpu-sandbox \
+          --disable-dev-shm-usage \
           --enable-features=UseOzonePlatform \
           --ozone-platform=x11 \
           "$@"
