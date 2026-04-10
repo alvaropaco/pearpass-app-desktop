@@ -15,6 +15,9 @@ finish-args:
   - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
+  - --system-talk-name=org.freedesktop.DBus
+  - --system-talk-name=org.bluez
+  - --system-talk-name=org.freedesktop.UPower
 
 modules:
   - name: pearpass
@@ -39,7 +42,8 @@ modules:
         cd "$APP_ROOT"
         exec "$APP_ROOT/pearpass-app-desktop" \
           --no-sandbox \
-          --enable-features=UseOzonePlatform \
+          --disable-gpu-sandbox \
+          --enable-features=UseOzonePlatform,WaylandWindowDecorations \
           --ozone-platform-hint=auto \
           "$@"
         WRAPPER
