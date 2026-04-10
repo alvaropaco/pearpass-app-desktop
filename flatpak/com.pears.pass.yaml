@@ -8,16 +8,13 @@ finish-args:
   - --share=ipc
   - --share=network
   - --socket=x11
-  - --socket=wayland
   - --socket=fallback-x11
+  - --socket=system-bus
   - --device=dri
   - --filesystem=home
   - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
-  - --system-talk-name=org.freedesktop.DBus
-  - --system-talk-name=org.bluez
-  - --system-talk-name=org.freedesktop.UPower
 
 modules:
   - name: pearpass
@@ -45,8 +42,8 @@ modules:
         cd "$APP_ROOT"
         exec "$APP_ROOT/pearpass-app-desktop" \
           --no-sandbox \
+          --disable-gpu \
           --disable-gpu-sandbox \
-          --disable-gpu-compositing \
           --enable-features=UseOzonePlatform \
           --ozone-platform=x11 \
           "$@"
