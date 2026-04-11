@@ -40,6 +40,29 @@ const {
 } = require('../src/utils/createMainProcessLogger.cjs')
 
 const logger = createMainProcessLogger({ app, debugMode })
+
+/**
+ * Emit a structured startup marker to stderr.
+ *
+ * The main-process logger is a no-op when DEBUG_MODE=false (i.e. in every
+ * packaged build), which means the CI smoke test has no way to observe
+ * runtime progress and local failures can't be diagnosed from `journalctl`.
+ * This helper writes directly to process.stderr so markers survive regardless
+ * of logger configuration. Keep the output format stable — the flatpak smoke
+ * test greps for `[PEARPASS] <NAME>` lines.
+ */
+function emitStartupMarker(name, detail) {
+  try {
+    const hasDetail = typeof detail === 'string' && detail.length > 0
+    const line = hasDetail
+      ? `[PEARPASS] ${name} ${detail}\n`
+      : `[PEARPASS] ${name}\n`
+    process.stderr.write(line)
+  } catch {
+    // never let the marker path break startup
+  }
+}
+
 // Enable auto-reload during development for main + renderer code
 if (!app.isPackaged) {
   try {
@@ -185,11 +208,20 @@ const WORKLET_READY_SIGNAL = 'WORKLET_READY'
 
 function waitForWorkletReady(sidecar) {
   const ipcStream = sidecar?._process?.stdio?.[3]
-  if (ipcStream) return Promise.resolve()
+  if (ipcStream) {
+    // Having an IPC pipe is treated as "ready enough" — bare-sidecar has
+    // already finished its side of the handshake.
+    emitStartupMarker('WORKLET_READY', 'via=ipc-stream')
+    return Promise.resolve(true)
+  }
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       cleanup()
-      resolve()
+      emitStartupMarker(
+        'WORKLET_READY_TIMEOUT',
+        `ms=${WORKLET_READY_TIMEOUT_MS}`
+      )
+      resolve(false)
     }, WORKLET_READY_TIMEOUT_MS)
     let buffer = ''
     const onData = (d) => {
@@ -197,7 +229,8 @@ function waitForWorkletReady(sidecar) {
       buffer += s
       if (buffer.includes(WORKLET_READY_SIGNAL)) {
         cleanup()
-        resolve()
+        emitStartupMarker('WORKLET_READY', 'via=stdio-signal')
+        resolve(true)
       }
     }
     const cleanup = () => {
@@ -253,6 +286,7 @@ async function startRuntime() {
   }
 
   workletSidecar = pearRuntime.run(workletPath)
+  emitStartupMarker('WORKLET_SPAWNED', 'mode=pear-runtime')
   workletSidecar.on('error', (err) => {
     logger.error('MAIN', '[worklet IPC error]', err.code || err.message, err)
   })
@@ -280,12 +314,18 @@ async function startRuntime() {
   })
   await waitForWorkletReady(workletSidecar)
   const storagePath = await resolveRuntimeStorageDir()
+  emitStartupMarker('STORAGE_PATH_SET', storagePath)
   try {
     vaultClient = new PearpassVaultClient(workletSidecar, storagePath, {
       debugMode
     })
+    emitStartupMarker('VAULT_CLIENT_READY')
   } catch (error) {
-    console.error('Error creating PearpassVaultClient', error)
+    emitStartupMarker(
+      'VAULT_CLIENT_ERROR',
+      (error && (error.stack || error.message)) || String(error)
+    )
+    throw error
   }
 
   vaultClient.on('update', () => {
@@ -350,6 +390,7 @@ async function startWorkletOnly() {
       process.chdir(previousCwd)
     }
   }
+  emitStartupMarker('WORKLET_SPAWNED', 'mode=bare-sidecar')
   workletSidecar.on('error', (err) => {
     logger.error('MAIN', '[worklet IPC error]', err.code || err.message, err)
   })
@@ -376,9 +417,20 @@ async function startWorkletOnly() {
     logger.error('MAIN', '[worklet process error]', err)
   })
   await waitForWorkletReady(workletSidecar)
-  vaultClient = new PearpassVaultClient(workletSidecar, getStorageDir(), {
-    debugMode
-  })
+  const storagePath = getStorageDir()
+  emitStartupMarker('STORAGE_PATH_SET', storagePath)
+  try {
+    vaultClient = new PearpassVaultClient(workletSidecar, storagePath, {
+      debugMode
+    })
+    emitStartupMarker('VAULT_CLIENT_READY')
+  } catch (error) {
+    emitStartupMarker(
+      'VAULT_CLIENT_ERROR',
+      (error && (error.stack || error.message)) || String(error)
+    )
+    throw error
+  }
 
   vaultClient.on('update', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -442,6 +494,7 @@ function createWindow() {
   })
 
   mainWindow.loadFile(path.join(__dirname, '..', 'index.html'))
+  emitStartupMarker('WINDOW_CREATED')
 
   // Open external links in the default browser instead of the Electron window
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -588,12 +641,17 @@ function registerIPC() {
 }
 
 app.whenReady().then(async () => {
+  emitStartupMarker('PEARPASS_MAIN_READY')
   app.setName('PearPass')
   logger.setLogPath(getStorageDir())
   registerIPC()
   try {
     await startRuntime()
   } catch (err) {
+    emitStartupMarker(
+      'STARTUP_ERROR',
+      (err && (err.stack || err.message)) || String(err)
+    )
     logger.error('MAIN', 'Failed to start runtime/worklet:', err)
   }
 
