@@ -9,6 +9,16 @@ function isFlatpakRuntime(options = {}) {
   return Boolean(env.FLATPAK_ID) || existsSync(flatpakInfoPath)
 }
 
+function getHostHome(options = {}) {
+  const env = options.env || process.env
+  if (!isFlatpakRuntime(options)) return env.HOME || ''
+  // Inside flatpak $HOME is remapped to the per-app sandbox home.
+  // With --filesystem=home the real host home is mounted at /home/$USER
+  // and is where host-side browsers (e.g. Chrome) read NativeMessagingHosts.
+  const user = env.USER || env.USERNAME
+  return user ? path.join('/home', user) : env.HOME || ''
+}
+
 function getFlatpakCompatRoots(options = {}) {
   const env = options.env || process.env
   const homeDir = env.HOME
@@ -52,6 +62,7 @@ function getSandboxSafePath(targetPath, options = {}) {
 
 module.exports = {
   getFlatpakCompatRoots,
+  getHostHome,
   getSandboxSafePath,
   isFlatpakRuntime,
   mapFlatpakPathToSandbox
