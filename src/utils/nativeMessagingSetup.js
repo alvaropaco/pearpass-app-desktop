@@ -79,11 +79,30 @@ export const generateNativeHostExecutable = async (
       // re-enter the sandbox via `flatpak run` before execing the bridge.
       // The /app/* electronExecPath and bridgeScriptPath are only valid
       // inside the sandbox and are resolved by the in-sandbox command.
+      //
+      // Diagnostics MUST go to stderr: Chrome's native-messaging protocol
+      // treats anything on stdout as a framed message and will drop the port
+      // ("Native host has exited") if we write plain text there.
       content = `#!/bin/bash
 # PearPass Native Messaging Host (flatpak)
 # Chrome launches this on the host; re-enter the sandbox to run the bridge.
+set -u
 
-exec flatpak run --command=${FLATPAK_NATIVE_HOST_COMMAND} ${FLATPAK_APP_ID} "$@"
+FLATPAK_BIN="$(command -v flatpak 2>/dev/null || true)"
+if [ -z "\${FLATPAK_BIN}" ]; then
+  for candidate in /usr/bin/flatpak /usr/local/bin/flatpak /var/lib/flatpak/exports/bin/flatpak; do
+    if [ -x "\${candidate}" ]; then
+      FLATPAK_BIN="\${candidate}"
+      break
+    fi
+  done
+fi
+if [ -z "\${FLATPAK_BIN}" ]; then
+  echo "pearpass-native-host: flatpak binary not found on PATH" >&2
+  exit 127
+fi
+
+exec "\${FLATPAK_BIN}" run --command=${FLATPAK_NATIVE_HOST_COMMAND} ${FLATPAK_APP_ID} "$@"
 `
     } else if (platform === 'darwin' || platform === 'linux') {
       content = `#!/bin/bash
@@ -319,6 +338,21 @@ export const getNativeMessagingLocations = () => {
           ),
           manifestPath: path.join(
             home,
+            '.config',
+            'BraveSoftware',
+            'Brave-Browser',
+            'NativeMessagingHosts',
+            manifestFile
+          )
+        },
+        {
+          name: 'Brave (Snap)',
+          browserDir: path.join(home, 'snap', 'brave', 'current'),
+          manifestPath: path.join(
+            home,
+            'snap',
+            'brave',
+            'current',
             '.config',
             'BraveSoftware',
             'Brave-Browser',
