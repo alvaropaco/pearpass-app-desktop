@@ -19,7 +19,10 @@ const PearRuntime = require('pear-runtime')
 const getPearRuntimeLegacyStorage = require('pear-runtime-legacy-storage')
 const { isLinux, isWindows, isMac } = require('which-runtime')
 
-const { scheduleClipboardCleanup } = require('./clipboardCleanup.cjs')
+const {
+  flushPendingClipboardCleanups,
+  scheduleClipboardCleanup
+} = require('./clipboardCleanup.cjs')
 
 let debugMode = false
 
@@ -665,6 +668,11 @@ app.whenReady().then(async () => {
 })
 
 async function cleanup() {
+  try {
+    flushPendingClipboardCleanups({ clipboard, logger })
+  } catch (err) {
+    logger.warn('MAIN', 'Clipboard flush on quit failed:', err)
+  }
   if (workletSidecar) {
     try {
       workletSidecar.destroy()

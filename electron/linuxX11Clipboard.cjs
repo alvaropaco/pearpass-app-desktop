@@ -9,7 +9,9 @@ function runCommand(command, args, input) {
   return spawnSync(command, args, {
     encoding: 'utf8',
     input,
-    stdio: ['pipe', 'pipe', 'pipe']
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: 1500,
+    killSignal: 'SIGKILL'
   })
 }
 

@@ -6,6 +6,12 @@ const {
 } = require('./linuxWaylandClipboardFallback.cjs')
 
 function isWaylandSession() {
+  // Electron is pinned to X11 via --ozone-platform=x11 / GDK_BACKEND=x11 in
+  // the Flatpak wrapper because the sandbox only holds --socket=x11. In that
+  // mode the app's clipboard lives on the X server (XWayland), so reading it
+  // with wl-paste would miss our writes and fail to match the cleanup secret.
+  if (process.env.GDK_BACKEND === 'x11') return false
+  if (process.env.ELECTRON_OZONE_PLATFORM_HINT === 'x11') return false
   return (
     Boolean(process.env.WAYLAND_DISPLAY) ||
     process.env.XDG_SESSION_TYPE === 'wayland'
@@ -16,7 +22,9 @@ function runCommand(command, args, input) {
   return spawnSync(command, args, {
     encoding: 'utf8',
     input,
-    stdio: ['pipe', 'pipe', 'pipe']
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: 1500,
+    killSignal: 'SIGKILL'
   })
 }
 
