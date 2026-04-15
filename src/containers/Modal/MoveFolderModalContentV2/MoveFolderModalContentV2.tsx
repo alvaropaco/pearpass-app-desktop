@@ -1,0 +1,287 @@
+import React, { useEffect, useMemo, useState } from 'react'
+
+// @ts-ignore - JS module without type declarations
+import { generateAvatarInitials } from '@tetherto/pear-apps-utils-avatar-initials'
+import { Button, Dialog, Text, useTheme } from '@tetherto/pearpass-lib-ui-kit'
+// @ts-expect-error - declaration file is incomplete for these hooks
+import { useFolders, useRecords } from '@tetherto/pearpass-lib-vault'
+
+import { createStyles } from './MoveFolderModalContentV2.styles'
+import { RECORD_COLOR_BY_TYPE } from '../../../constants/recordColorByType'
+import { useModal } from '../../../context/ModalContext'
+import { useGlobalLoading } from '../../../context/LoadingContext'
+import { useTranslation } from '../../../hooks/useTranslation'
+import { Folder, Layers } from '@tetherto/pearpass-lib-ui-kit/icons'
+import { RecordAvatar } from '../../../components/RecordAvatar'
+
+const ALL_ID = '__all__'
+
+export type MoveFolderRecord = Record<string, unknown> & {
+  id: string
+  folder?: string | null
+  isFavorite?: boolean
+  type: string
+  data?: {
+    title?: string
+    username?: string
+    email?: string
+    websites?: string[]
+    [key: string]: unknown
+  }
+}
+
+export type MoveFolderModalContentV2Props = {
+  records: MoveFolderRecord[]
+  onCompleted?: () => void
+}
+
+type FolderOption = {
+  id: string
+  kind: 'all' | 'custom'
+  label: string
+  customName?: string
+  icon: React.ReactNode
+}
+
+function getRecordSubtitle(record: MoveFolderRecord): string {
+  if (["login", 'identity'].includes(record.type)) {
+    const u = record.data?.username
+    const e = record.data?.email
+    const w = record.data?.websites?.[0]
+    return String(u || e || w || '')
+  }
+  if (record.folder) {
+    return String(record.folder)
+  }
+  return ''
+}
+
+function hasCustomFolder(record: MoveFolderRecord): boolean {
+  return !!(record.folder && String(record.folder).length > 0)
+}
+
+
+export const MoveFolderModalContentV2 = ({
+  records,
+  onCompleted
+}: MoveFolderModalContentV2Props) => {
+  const { t } = useTranslation()
+  const { theme } = useTheme()
+  const styles = createStyles(theme.colors)
+  const { closeModal } = useModal()
+
+  const { data: folders, isLoading: isLoadingFolders } = useFolders()
+
+  const { updateFolder, updateRecords, isLoading: isUpdating } = useRecords({
+    onCompleted: closeModal
+  })
+
+  const isLoading = isUpdating || isLoadingFolders
+
+  useGlobalLoading({ isLoading })
+
+  const iconColor = theme.colors.colorTextPrimary
+
+  const folderOptions = useMemo(() => {
+    const customFolders = Object.values(
+      (folders?.customFolders ?? {}) as Record<string, { name: string }>
+    )
+
+    const opts: FolderOption[] = []
+
+    opts.push({
+      id: ALL_ID,
+      kind: 'all',
+      label: t('All Items'),
+      icon: <Layers width={20} height={20} style={{ color: iconColor }} />
+    })
+
+    for (const f of customFolders.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )) {
+      const { name } = f
+      opts.push({
+        id: name,
+        kind: 'custom',
+        customName: name,
+        label: name,
+        icon: <Folder width={20} height={20} style={{ color: iconColor }} />
+      })
+    }
+
+    return opts
+  }, [folders, t, iconColor])
+
+  const recordIdsKey = records.map((r) => r.id).sort().join(',')
+  const customFoldersListKey = Object.keys(
+    (folders?.customFolders ?? {}) as Record<string, unknown>
+  )
+    .sort()
+    .join(',')
+  const [selectedId, setSelectedId] = useState<string>(ALL_ID)
+
+  useEffect(() => {
+    setSelectedId(ALL_ID)
+  }, [recordIdsKey, customFoldersListKey])
+
+  const allAtRootNoCustomFolder = records.every((r) => !hasCustomFolder(r))
+
+  const atDestination =
+    selectedId === ALL_ID
+      ? records.length > 0 && allAtRootNoCustomFolder
+      : records.length > 0 &&
+      records.every((r) => r.folder === selectedId)
+
+  const isMoveDisabled =
+    isLoading || folderOptions.length === 0 || !!atDestination
+
+  const moveDialogTitle =
+    records.length === 1
+      ? t('Move 1 item')
+      : t('Move {count} items', { count: records.length })
+
+  const handleMove = async () => {
+    const opt = folderOptions.find((o) => o.id === selectedId)
+    if (!opt || isMoveDisabled) {
+      return
+    }
+
+    const ids = records.map((r) => r.id)
+    const { kind, customName } = opt
+
+    if (kind === 'all') {
+      await updateRecords(
+        records.map((r) => ({
+          ...r,
+          folder: null
+        }))
+      )
+    } else if (customName) {
+      await updateFolder(ids, customName)
+    }
+
+    onCompleted?.()
+  }
+
+  const {
+    body,
+    itemRow,
+    itemText,
+    itemsList,
+    destinationHint,
+    chipRow,
+    chip,
+    chipSelected,
+    chipUnselected,
+    itemsListHeader
+  } = styles
+  return (
+    <Dialog
+      title={moveDialogTitle}
+      onClose={closeModal}
+      testID="movefolder-dialog-v2"
+      closeButtonTestID="movefolder-close-v2"
+      footer={
+        <>
+          <Button
+            variant="secondary"
+            size="small"
+            type="button"
+            onClick={closeModal}
+            data-testid="movefolder-discard-v2"
+          >
+            {t('Discard')}
+          </Button>
+          <Button
+            variant="primary"
+            size="small"
+            type="button"
+            disabled={isMoveDisabled}
+            isLoading={isLoading}
+            onClick={handleMove}
+            data-testid="movefolder-submit-v2"
+          >
+            {t(`Move ${records.length > 1 ? 'items' : 'item'}`)}
+          </Button>
+        </>
+      }
+    >
+      <div style={body}>
+        <div style={itemsListHeader}>
+        <Text variant="caption" color={theme.colors.colorTextSecondary}>
+          {t(`Selected ${records.length > 1 ? 'Items' : 'Item'}`)}
+        </Text>
+        </div>
+
+        {records.length > 0 ? (
+          <div style={itemsList}>
+            {records.map((record, index) => {
+              const domain =
+                record.type === 'login'
+                  ? record.data?.websites?.[0] ?? null
+                  : null
+              const subtitle = getRecordSubtitle(record)
+              const titleText = record.data?.title ?? ''
+              return (
+                <div key={record.id} style={itemRow}>
+                  <RecordAvatar
+                    websiteDomain={domain ?? ''}
+                    initials={generateAvatarInitials(record.data?.title)}
+                    size="md"
+                    isSelected={false}
+                    isFavorite={!!record.isFavorite}
+                    color={
+                      RECORD_COLOR_BY_TYPE[
+                      record.type as keyof typeof RECORD_COLOR_BY_TYPE
+                      ] ?? RECORD_COLOR_BY_TYPE.custom
+                    }
+                    testId={`movefolder-avatar-v2-${index}`}
+                  />
+                  <div style={itemText}>
+                    <Text>{titleText}</Text>
+                    {subtitle ? (
+                      <Text
+                        variant="caption"
+                        color={theme.colors.colorTextSecondary}
+                      >
+                        {subtitle}
+                      </Text>
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
+
+        <div style={destinationHint}>
+          <Text variant="caption" color={theme.colors.colorTextSecondary}>
+            {t(`Choose the destination folder of ${records.length > 1 ? 'these items' : 'this item'}`)}
+          </Text>
+        </div>
+
+        <div style={chipRow}>
+          {folderOptions.map((opt) => {
+            const { id, label, icon } = opt
+            const selected = id === selectedId
+            return (
+              <button
+                key={id}
+                type="button"
+                data-testid={`movefolder-chip-${id}`}
+                onClick={() => setSelectedId(id)}
+                style={{
+                  ...chip,
+                  ...(selected ? chipSelected : chipUnselected)
+                }}
+              >
+                {icon}
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </Dialog>
+  )
+}

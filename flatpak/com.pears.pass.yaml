@@ -45,6 +45,7 @@ modules:
         cd "$APP_ROOT"
         exec "$APP_ROOT/pearpass-app-desktop" \
           --no-sandbox \
+          --disable-gpu \
           --disable-gpu-sandbox \
           --disable-dev-shm-usage \
           --enable-features=UseOzonePlatform \

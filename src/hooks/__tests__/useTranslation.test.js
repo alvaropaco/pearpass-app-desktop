@@ -39,6 +39,26 @@ describe('useTranslation', () => {
     expect(output).toBe('translated:hello.world')
   })
 
+  test('t passes interpolation values as the second argument to i18n._', () => {
+    const translateMock = jest.fn((key, values) =>
+      values !== null ? `${key}|${JSON.stringify(values)}` : key
+    )
+    useLingui.mockReturnValue({ i18n: { _: translateMock } })
+
+    const { result } = renderHook(() => useTranslation())
+
+    let output
+    act(() => {
+      output = result.current.t('and {count} more', { count: 2 })
+    })
+
+    expect(translateMock).toHaveBeenCalledTimes(1)
+    expect(translateMock).toHaveBeenCalledWith('and {count} more', {
+      count: 2
+    })
+    expect(output).toBe('and {count} more|{"count":2}')
+  })
+
   test('t reference is stable when i18n instance does not change', () => {
     const translateMock = jest.fn((key) => key)
     const i18nInstance = { _: translateMock }
