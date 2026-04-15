@@ -28,22 +28,9 @@ modules:
       - mkdir -p /app/lib/pearpass
       - cp -a squashfs-root/. /app/lib/pearpass/
 
-      # ── Install wrapper script ────────────────────────────────────────
-      - mkdir -p /app/bin
-      - |
-        cat > /app/bin/pearpass <<'WRAPPER'
-        #!/bin/sh
-        APP_ROOT="/app/lib/pearpass"
-        export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}"
-        export LD_LIBRARY_PATH="$APP_ROOT${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        cd "$APP_ROOT"
-        exec "$APP_ROOT/pearpass-app-desktop" \
-          --no-sandbox \
-          --enable-features=UseOzonePlatform \
-          --ozone-platform-hint=auto \
-          "$@"
-        WRAPPER
-      - chmod +x /app/bin/pearpass
+      # ── Install wrapper scripts ──────────────────────────────────────
+      - install -Dm755 pearpass.sh /app/bin/pearpass
+      - install -Dm755 pearpass-native-host.sh /app/bin/pearpass-native-host
 
       # ── Desktop integration ───────────────────────────────────────────
       - install -Dm644 com.pears.pass.desktop /app/share/applications/com.pears.pass.desktop
@@ -61,4 +48,8 @@ modules:
         path: com.pears.pass.metainfo.xml
       - type: file
         path: icon-512.png
+      - type: file
+        path: pearpass.sh
+      - type: file
+        path: pearpass-native-host.sh
 
