@@ -8,13 +8,16 @@ finish-args:
   - --share=ipc
   - --share=network
   - --socket=x11
-  - --socket=wayland
   - --socket=fallback-x11
+  - --socket=system-bus
   - --device=dri
   - --filesystem=home
   - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
+  - --system-talk-name=org.freedesktop.DBus
+  - --system-talk-name=org.bluez
+  - --system-talk-name=org.freedesktop.UPower
 
 modules:
   - name: pearpass
@@ -31,6 +34,26 @@ modules:
       # ── Install wrapper scripts ──────────────────────────────────────
       - install -Dm755 pearpass.sh /app/bin/pearpass
       - install -Dm755 pearpass-native-host.sh /app/bin/pearpass-native-host
+
+      # ── Native messaging host entry point ────────────────────────────
+      # Invoked via `flatpak run --command=pearpass-native-host com.pears.pass`
+      # by the host-side wrapper script that Chrome's Native Messaging API
+      # launches. Runs the bridge bundle through Electron's embedded Node.
+      - |
+        cat > /app/bin/pearpass-native-host <<'NMHOST'
+        #!/bin/sh
+        # Call the Electron binary directly, bypassing the pearpass-app-desktop
+        # shell launcher which unconditionally injects --no-sandbox. Under
+        # ELECTRON_RUN_AS_NODE=1 the binary runs as Node and rejects that flag,
+        # causing Chrome to see "Native host has exited".
+        APP_ROOT="/app/lib/pearpass"
+        export LD_LIBRARY_PATH="$APP_ROOT${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        export ELECTRON_RUN_AS_NODE=1
+        exec "$APP_ROOT/pearpass-app-desktop.bin" \
+          "$APP_ROOT/resources/app/dist/native-messaging-bridge.bundle.cjs" \
+          "$@"
+        NMHOST
+      - chmod +x /app/bin/pearpass-native-host
 
       # ── Desktop integration ───────────────────────────────────────────
       - install -Dm644 com.pears.pass.desktop /app/share/applications/com.pears.pass.desktop

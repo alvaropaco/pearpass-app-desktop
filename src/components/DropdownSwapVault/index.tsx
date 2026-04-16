@@ -16,9 +16,11 @@ import {
   Wrapper
 } from './styles'
 import { CreateVaultModalContent } from '../../containers/Modal/CreateVaultModalContent'
+import { CreateVaultModalContentV2 } from '../../containers/Modal/CreateVaultModalContentV2/CreateVaultModalContentV2'
 import { VaultPasswordFormModalContent } from '../../containers/Modal/VaultPasswordFormModalContent'
 import { useModal } from '../../context/ModalContext'
 import { useTranslation } from '../../hooks/useTranslation'
+import { isV2 } from '../../utils/designVersion'
 import {
   LockCircleIcon,
   LockIcon,
@@ -122,11 +124,12 @@ export const DropdownSwapVault = ({ vaults, selectedVault }: DropdownSwapVaultPr
   const handleCreateNewVault = () => {
     setIsOpen(false)
 
+    const CreateContent = isV2()
+      ? CreateVaultModalContentV2
+      : CreateVaultModalContent
+
     setModal(
-      html`<${CreateVaultModalContent}
-        onClose=${closeModal}
-        onSuccess=${closeModal}
-      />`
+      html`<${CreateContent} onClose=${closeModal} onSuccess=${closeModal} />`
     )
   }
 

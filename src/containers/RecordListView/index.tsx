@@ -33,8 +33,10 @@ import {
   XIcon
 } from '../../lib-react-components'
 import { FAVORITES_FOLDER_ID } from '../../utils/isFavorite'
+import { isV2 } from '../../utils/designVersion'
 import { ConfirmationModalContent } from '../Modal/ConfirmationModalContent'
 import { MoveFolderModalContent } from '../Modal/MoveFolderModalContent'
+import { MoveFolderModalContentV2 } from '../Modal/MoveFolderModalContentV2/MoveFolderModalContentV2'
 
 const ITEM_HEIGHT_RECORD = 45
 const ITEM_HEIGHT_HEADER = 30
@@ -303,8 +305,10 @@ export const RecordListView = ({
   }
 
   const handleMoveClick = () => {
+    const VersionBasedMoveFolderModalContent = isV2() ? MoveFolderModalContentV2 : MoveFolderModalContent
+
     setModal(
-      <MoveFolderModalContent
+      <VersionBasedMoveFolderModalContent
         records={selectedRecords}
         onCompleted={() => onClearSelection()}
       />

@@ -4,8 +4,10 @@ import { html } from 'htm/react'
 
 import { ConfirmationModalContent } from '../containers/Modal/ConfirmationModalContent'
 import { MoveFolderModalContent } from '../containers/Modal/MoveFolderModalContent'
+import { MoveFolderModalContentV2 } from '../containers/Modal/MoveFolderModalContentV2/MoveFolderModalContentV2'
 import { useModal } from '../context/ModalContext'
 import { useRouter } from '../context/RouterContext'
+import { isV2 } from '../utils/designVersion'
 
 /**
  * @param {{
@@ -73,7 +75,13 @@ export const useRecordActionItems = ({
   }
 
   const handleMoveClick = () => {
-    setModal(html` <${MoveFolderModalContent} records=${[record]} /> `)
+    const VersionBasedMoveFolderModalContent = isV2()
+      ? MoveFolderModalContentV2
+      : MoveFolderModalContent
+
+    setModal(html`
+      <${VersionBasedMoveFolderModalContent} records=${[record]} />
+    `)
 
     onClose?.()
   }
