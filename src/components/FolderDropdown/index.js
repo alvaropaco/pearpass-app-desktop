@@ -4,9 +4,11 @@ import { useFolders } from '@tetherto/pearpass-lib-vault'
 import { html } from 'htm/react'
 
 import { CreateFolderModalContent } from '../../containers/Modal/CreateFolderModalContent'
+import { CreateFolderModalContentV2 } from '../../containers/Modal/CreateFolderModalContentV2/CreateFolderModalContentV2'
 import { useModal } from '../../context/ModalContext'
 import { useTranslation } from '../../hooks/useTranslation'
 import { PlusIcon, StarIcon } from '../../lib-react-components'
+import { isV2 } from '../../utils/designVersion'
 import { FAVORITES_FOLDER_ID } from '../../utils/isFavorite'
 import { MenuDropdown } from '../MenuDropdown'
 import { DropDownItem } from '../MenuDropdown/styles'
@@ -30,7 +32,7 @@ export const FolderDropdown = ({ selectedFolder, onFolderSelect, testId }) => {
   const { data: folders } = useFolders()
 
   const { t } = useTranslation()
-  const { setModal } = useModal()
+  const { setModal, closeModal } = useModal()
 
   const customFolders = React.useMemo(() => {
     const mappedFolders = Object.values(folders?.customFolders ?? {}).map(
@@ -49,11 +51,21 @@ export const FolderDropdown = ({ selectedFolder, onFolderSelect, testId }) => {
   const icon = isFavorite ? StarIcon : undefined
 
   const handleCreateNewFolder = () => {
-    setModal(html`
-      <${CreateFolderModalContent}
-        onCreate=${(folderData) => onFolderSelect({ name: folderData?.folder })}
-      />
-    `)
+    isV2()
+      ? setModal(
+          <CreateFolderModalContentV2
+            onClose={() => closeModal()}
+            onCreate={(folderData) =>
+              onFolderSelect({ name: folderData?.folder })
+            }
+          />
+        )
+      : setModal(html`
+          <${CreateFolderModalContent}
+            onCreate=${(folderData) =>
+              onFolderSelect({ name: folderData?.folder })}
+          />
+        `)
   }
 
   const handleFolderSelect = (folder) => {

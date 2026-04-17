@@ -11,6 +11,7 @@ import { InputSearch } from '../../components/InputSearch'
 import { PopupMenu } from '../../components/PopupMenu'
 import { BrowserExtensionDialogV2 } from '../../containers/Modal/BrowserExtensionDialogV2'
 import { RecordListView } from '../../containers/RecordListView'
+import { useAppHeaderContext } from '../../context/AppHeaderContext'
 import { BannerProvider } from '../../context/BannerContext'
 import { useGlobalLoading } from '../../context/LoadingContext'
 import { useModal } from '../../context/ModalContext'
@@ -38,7 +39,8 @@ const SORT_BY_TYPE = {
 }
 
 export const MainView = () => {
-  const [isOpen, setIsOpen] = useState(false)
+  const { searchValue, setSearchValue, isAddMenuOpen, setIsAddMenuOpen } =
+    useAppHeaderContext()
   const [selectedRecords, setSelectedRecords] = useState([])
   const { popupItems } = useRecordMenuItems()
   const { data: routerData } = useRouter()
@@ -55,7 +57,6 @@ export const MainView = () => {
     }
   }, [])
 
-  const [searchValue, setSearchValue] = useState('')
   const [sortType, setSortType] = useState('recent')
 
   const sort = React.useMemo(() => SORT_BY_TYPE[sortType], [sortType])
@@ -90,7 +91,7 @@ export const MainView = () => {
       isFavorite: isFavoritesView ? true : undefined
     })
 
-    setIsOpen(false)
+    setIsAddMenuOpen(false)
   }
 
   const BannerWrapper = isV2() ? React.Fragment : BannerProvider
@@ -98,33 +99,36 @@ export const MainView = () => {
   return html`
     <${BannerWrapper}>
       <${Wrapper}>
-        <${SearchContainer}>
-          <${InputSearch}
-            value=${searchValue}
-            onChange=${(e) => setSearchValue(e.target.value)}
-            quantity=${records?.length}
-            testId="main-search-input"
-          />
+        ${!isV2()
+          ? html`
+              <${SearchContainer}>
+                <${InputSearch}
+                  value=${searchValue}
+                  onChange=${(e) => setSearchValue(e.target.value)}
+                  quantity=${records?.length}
+                  testId="main-search-input"
+                />
 
-          <${PopupMenu}
-            side="right"
-            align="right"
-            isOpen=${isOpen}
-            setIsOpen=${setIsOpen}
-            content=${html`
-              <${CreateNewCategoryPopupContent}
-                menuItems=${popupItems}
-                onClick=${handleMenuItemClick}
-              />
-            `}
-          >
-            <${ButtonPlusCreateNew}
-              testId="main-plus-button"
-              isOpen=${isOpen}
-            />
-          <//>
-        <//>
-
+                <${PopupMenu}
+                  side="right"
+                  align="right"
+                  isOpen=${isAddMenuOpen}
+                  setIsOpen=${setIsAddMenuOpen}
+                  content=${html`
+                    <${CreateNewCategoryPopupContent}
+                      menuItems=${popupItems}
+                      onClick=${handleMenuItemClick}
+                    />
+                  `}
+                >
+                  <${ButtonPlusCreateNew}
+                    testId="main-plus-button"
+                    isOpen=${isAddMenuOpen}
+                  />
+                <//>
+              <//>
+            `
+          : null}
         ${records?.length
           ? html` <${ContentWrapper}>
               <${RecordListView}

@@ -3,8 +3,14 @@ import React from 'react'
 import { render, fireEvent } from '@testing-library/react'
 import { ThemeProvider } from '@tetherto/pearpass-lib-ui-theme-provider'
 
-import { DropdownSwapVault } from './index'
 import '@testing-library/jest-dom'
+
+jest.mock(
+  '../../containers/Modal/CreateVaultModalContentV2/CreateVaultModalContentV2',
+  () => ({
+    CreateVaultModalContentV2: () => null
+  })
+)
 
 jest.mock('@tetherto/pearpass-lib-vault', () => ({
   useVault: () => ({
@@ -31,6 +37,8 @@ jest.mock('../../hooks/useTranslation', () => ({
     t: (key) => key
   })
 }))
+
+import { DropdownSwapVault } from './index'
 
 describe('DropdownSwapVault component', () => {
   const mockVaults = [

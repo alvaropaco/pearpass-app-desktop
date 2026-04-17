@@ -40,10 +40,12 @@ import {
   UserSecurityIcon
 } from '../../lib-react-components'
 import { LogoLock } from '../../svgs/LogoLock'
+import { isV2 } from '../../utils/designVersion'
 import { FAVORITES_FOLDER_ID } from '../../utils/isFavorite'
 import { sortByName } from '../../utils/sortByName'
 import { AddDeviceModalContent } from '../Modal/AddDeviceModalContent'
 import { CreateFolderModalContent } from '../Modal/CreateFolderModalContent'
+import { CreateFolderModalContentV2 } from '../Modal/CreateFolderModalContentV2/CreateFolderModalContentV2'
 
 /**
  * @param {{
@@ -123,14 +125,16 @@ export const Sidebar = ({ sidebarSize = 'tight' }) => {
     return [allItemsFolder, favoritesFolder, ...filteredFolders]
   }, [data, t, routerData, searchValue])
 
-  const { setModal } = useModal()
+  const { setModal, closeModal } = useModal()
 
   const handleAddDevice = () => {
     setModal(html`<${AddDeviceModalContent} />`)
   }
 
   const handleAddFolderClick = () => {
-    setModal(html`<${CreateFolderModalContent} />`)
+    isV2()
+      ? setModal(<CreateFolderModalContentV2 onClose={closeModal} />)
+      : setModal(html`<${CreateFolderModalContent} />`)
   }
 
   const handleFolderClick = (id) => {

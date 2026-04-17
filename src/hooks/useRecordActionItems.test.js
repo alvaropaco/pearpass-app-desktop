@@ -7,6 +7,13 @@ import { useRouter } from '../context/RouterContext'
 const mockDeleteRecord = jest.fn()
 const mockUpdateFavoriteState = jest.fn()
 
+jest.mock(
+  '../containers/Modal/MoveFolderModalContentV2/MoveFolderModalContentV2',
+  () => ({
+    MoveFolderModalContentV2: () => null
+  })
+)
+
 jest.mock('../context/ModalContext', () => ({
   useModal: jest.fn()
 }))

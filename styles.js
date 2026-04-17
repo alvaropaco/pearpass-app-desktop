@@ -154,15 +154,26 @@ export const setFontsAndResetCSS = () => {
       #bar {
         backdrop-filter: blur(64px);
         -webkit-app-region: drag;
-        height: var(--title-bar-height);
+        position: relative;
+        z-index: 100;
+        min-height: var(--title-bar-height);
+        height: auto;
         padding: 0;
         color: ${({ theme }) => theme.colors.white.mode1};
         white-space: nowrap;
         display: flex;
         align-items: center;
         justify-content: center;
-        pointer-events: ${process.platform === 'darwin' ? 'auto' : 'none'};
-        visibility: ${process.platform === 'darwin' ? 'visible' : 'hidden'};
+        pointer-events: auto;
+        visibility: visible;
+      }
+
+      #bar input,
+      #bar button,
+      #bar [role='button'],
+      #bar [data-vault-chrome-interactive],
+      #bar [data-vault-chrome-interactive] * {
+        -webkit-app-region: no-drag;
       }
 
       ol,

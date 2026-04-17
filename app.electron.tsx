@@ -16,6 +16,7 @@ import { App } from './src/app/App'
 import { LoadingProvider } from './src/context/LoadingContext'
 import { ModalProvider } from './src/context/ModalContext'
 import { RouterProvider } from './src/context/RouterContext'
+import { AppHeaderContextProvider } from './src/context/AppHeaderContext'
 import { ToastProvider } from './src/context/ToastContext'
 import { messages } from './src/locales/en/messages.mjs'
 import { getElectronConfig, getElectronVaultClient } from './src/electron'
@@ -43,11 +44,13 @@ function renderApp() {
             <I18nProvider i18n={i18n}>
               <ToastProvider>
                 <RouterProvider>
-                  <AutoLockProvider>
-                    <ModalProvider>
-                      <App />
-                    </ModalProvider>
-                  </AutoLockProvider>
+                  <AppHeaderContextProvider>
+                    <AutoLockProvider>
+                      <ModalProvider>
+                        <App />
+                      </ModalProvider>
+                    </AutoLockProvider>
+                  </AppHeaderContextProvider>
                 </RouterProvider>
               </ToastProvider>
             </I18nProvider>

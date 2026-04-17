@@ -16,7 +16,9 @@ import {
 } from './styles'
 import { useModal } from '../../context/ModalContext'
 import { DeleteIcon, ImageIcon, PlusIcon } from '../../lib-react-components'
+import { isV2 } from '../../utils/designVersion'
 import { DisplayPictureModalContent } from '../Modal/DisplayPictureModalContent'
+import { DisplayPictureModalContentV2 } from '../Modal/DisplayPictureModalContentV2/DisplayPictureModalContentV2'
 
 /**
  * @param {{
@@ -53,7 +55,11 @@ export const ImagesField = ({
   )
 
   const handlePictureClick = (url, name) => {
-    setModal(html`<${DisplayPictureModalContent} url=${url} name=${name} />`)
+    const ModalContentComponent = isV2()
+      ? DisplayPictureModalContentV2
+      : DisplayPictureModalContent
+
+    setModal(<ModalContentComponent url={url} name={name} />)
   }
 
   const handleRemove = (e, index) => {

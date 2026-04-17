@@ -11,7 +11,9 @@ import {
 } from './styles'
 import { useModal } from '../../context/ModalContext'
 import { CommonFileIcon } from '../../lib-react-components'
+import { isV2 } from '../../utils/designVersion'
 import { DisplayPictureModalContent } from '../Modal/DisplayPictureModalContent'
+import { DisplayPictureModalContentV2 } from '../Modal/DisplayPictureModalContentV2/DisplayPictureModalContentV2'
 
 const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']
 
@@ -40,12 +42,11 @@ export const AttachmentField = ({
     const url = URL.createObjectURL(blob)
 
     if (isImage) {
-      setModal(
-        html`<${DisplayPictureModalContent}
-          url=${url}
-          name=${attachment.name}
-        />`
-      )
+      const ModalContentComponent = isV2()
+        ? DisplayPictureModalContentV2
+        : DisplayPictureModalContent
+
+      setModal(<ModalContentComponent url={url} name={attachment.name} />)
     } else {
       const a = document.createElement('a')
       a.href = url

@@ -4,16 +4,18 @@ import { useLingui } from '@lingui/react'
 import { useRecords, useFolders } from '@tetherto/pearpass-lib-vault'
 import { html } from 'htm/react'
 
-import { useModal } from '../../../context/ModalContext'
-import { ModalContent } from '../ModalContent'
 import { FolderList, HeaderWrapper } from './styles'
 import { useGlobalLoading } from '../../../context/LoadingContext'
+import { useModal } from '../../../context/ModalContext'
 import {
   ButtonFolder,
   ButtonSingleInput,
   NewFolderIcon
 } from '../../../lib-react-components'
+import { isV2 } from '../../../utils/designVersion'
 import { CreateFolderModalContent } from '../CreateFolderModalContent'
+import { CreateFolderModalContentV2 } from '../CreateFolderModalContentV2/CreateFolderModalContentV2'
+import { ModalContent } from '../ModalContent'
 
 /**
  * @param {{
@@ -54,11 +56,18 @@ export const MoveFolderModalContent = ({ records, onCompleted }) => {
   }
 
   const handleCreateClick = () => {
-    setModal(html`
-      <${CreateFolderModalContent}
-        onCreate=${(folderData) => handleMove(folderData.folder)}
-      />
-    `)
+    isV2()
+      ? setModal(
+          <CreateFolderModalContentV2
+            onClose={closeModal}
+            onCreate={(folderData) => handleMove(folderData.folder)}
+          />
+        )
+      : setModal(html`
+          <${CreateFolderModalContent}
+            onCreate=${(folderData) => handleMove(folderData.folder)}
+          />
+        `)
   }
 
   return html`

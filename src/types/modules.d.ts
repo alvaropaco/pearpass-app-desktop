@@ -75,10 +75,7 @@ declare module '@tetherto/pearpass-lib-vault' {
   export const RECORD_TYPES: any
   export const OTP_TYPE: { TOTP: 'TOTP'; HOTP: 'HOTP' }
 
-  export function useOtp(params: {
-    recordId: string
-    otpPublic: any
-  }): {
+  export function useOtp(params: { recordId: string; otpPublic: any }): {
     code: string | null
     timeRemaining: number | null
     type: string | null
@@ -166,6 +163,49 @@ declare module '@tetherto/pearpass-lib-vault' {
     isLoading: boolean
     hasError: boolean
   }
+
+  export interface FolderRecord {
+    id: string
+    folder?: string | null
+    isFavorite?: boolean
+    type: string
+    [key: string]: unknown
+  }
+
+  export interface FolderEntry {
+    name: string
+    records: FolderRecord[]
+  }
+
+  export interface FoldersData {
+    favorites: { records: FolderRecord[] }
+    noFolder: { records: FolderRecord[] }
+    customFolders: Record<string, FolderEntry>
+  }
+
+  export interface UseFoldersResult {
+    isLoading: boolean
+    data: FoldersData | undefined
+    renameFolder: (name: string, newName: string) => Promise<void>
+    deleteFolder: (name: string) => Promise<void>
+  }
+
+  export function useFolders(options?: {
+    variables?: { searchPattern?: string }
+  }): UseFoldersResult
+
+  export interface UseCreateFolderResult {
+    isLoading: boolean
+    createFolder: (folderName: string) => void
+  }
+
+  export function useCreateFolder(options?: {
+    onCompleted?: (payload: string) => void
+    onError?: (error: string) => void
+  }): UseCreateFolderResult
+
+  export const useRecords: any
+  export const useBlindMirrors: any
 }
 
 declare module '@tetherto/pear-apps-lib-ui-react-hooks' {
@@ -190,10 +230,15 @@ declare module '@tetherto/pearpass-lib-constants' {
   export const PROTECTED_VAULT_ENABLED: boolean
   export const BE_AUTO_LOCK_ENABLED: boolean
   export const DEFAULT_AUTO_LOCK_TIMEOUT: number
-  export const AUTO_LOCK_TIMEOUT_OPTIONS: Record<string, { label: string, value: number }>
+  export const AUTO_LOCK_TIMEOUT_OPTIONS: Record<
+    string,
+    { label: string; value: number }
+  >
   export const AUTO_LOCK_ENABLED: boolean
   export const DELETE_VAULT_ENABLED: boolean
+  export const AUTHENTICATOR_ENABLED: boolean
   export const DESIGN_VERSION: number
   export const NATIVE_MESSAGING_BRIDGE_PEAR_LINK_PRODUCTION: string
   export const NATIVE_MESSAGING_BRIDGE_PEAR_LINK_STAGING: string
+  export const UNSUPPORTED: boolean
 }

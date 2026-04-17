@@ -28,8 +28,8 @@ export const CreateFolderModalContent = ({ onCreate, initialValues }) => {
   const { renameFolder } = useFolders()
 
   const { isLoading, createFolder } = useCreateFolder({
-    onCompleted: (folderName) => {
-      onCreate?.(folderName)
+    onCompleted: (folderData) => {
+      onCreate?.(folderData)
 
       closeModal()
     }

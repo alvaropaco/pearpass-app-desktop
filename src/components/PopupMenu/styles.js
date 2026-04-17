@@ -33,7 +33,7 @@ export const MenuCard = styled.div.withConfig({
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
   position: fixed;
-  z-index: 1000;
+  z-index: 20000;
   left: ${({ left }) => left}px;
   top: ${({ top }) => top}px;
   opacity: ${({ isOpen }) => (isOpen ? 1 : 0)};

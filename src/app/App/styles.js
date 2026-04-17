@@ -28,6 +28,8 @@ export const WindowBackground = styled.div`
 export const ContentFrame = styled.div`
   ${isV2()
     ? `
+  position: relative;
+  z-index: 0;
   flex: 1 1 0;
   min-height: 0;
   min-width: 0;

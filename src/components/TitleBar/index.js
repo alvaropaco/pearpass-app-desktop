@@ -12,7 +12,7 @@ const BarInner = styled.div`
   height: 100%;
   align-items: center;
   justify-content: center;
-  padding: 10px 16px;
+  padding: 12px 16px;
 `
 
 const Brand = styled.div`

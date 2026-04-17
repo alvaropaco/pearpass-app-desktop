@@ -4,16 +4,6 @@ import { CreateOrEditCategoryWrapper } from '../containers/Modal/CreateOrEditCat
 import { GeneratePasswordSideDrawerContent } from '../containers/Modal/GeneratePasswordSideDrawerContent'
 import { useModal } from '../context/ModalContext'
 
-/**
- * @returns {{
- *  handleCreateOrEditRecord: ({
- *    recordType: 'login' | 'creditCard' | 'identity' | 'note' | 'custom',
- *    initialRecord?: any,
- *    selectedFolder?: string,
- *    isFavorite?: boolean
- *  }) => void
- * }}
- */
 export const useCreateOrEditRecord = () => {
   const { setModal } = useModal()
 
@@ -39,13 +29,19 @@ export const useCreateOrEditRecord = () => {
     }
   }
 
-  const handleCreateOrEditRecord = ({
-    recordType,
-    initialRecord,
-    selectedFolder,
-    isFavorite,
-    setValue
-  }) => {
+  /**
+   * @param {{
+   *   recordType: string,
+   *   initialRecord?: unknown,
+   *   selectedFolder?: string,
+   *   isFavorite?: boolean,
+   *   setValue?: (value: string) => void
+   * }} options
+   */
+  const handleCreateOrEditRecord = (options) => {
+    const { recordType, initialRecord, selectedFolder, isFavorite, setValue } =
+      options
+
     if (recordType === 'password') {
       setModal(getSideDrawerContentByRecordType({ recordType, setValue }), {
         modalType: 'sideDrawer'
