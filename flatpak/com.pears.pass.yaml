@@ -1,7 +1,12 @@
 app-id: com.pears.pass
-runtime: org.gnome.Platform
-runtime-version: '49'
-sdk: org.gnome.Sdk
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '24.08'
+separate-locales: false
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node22
 command: pearpass
 
 finish-args:
@@ -9,9 +14,7 @@ finish-args:
   - --share=network
   - --socket=x11
   - --socket=fallback-x11
-  - --socket=system-bus
   - --device=dri
-  - --filesystem=home
   - --filesystem=xdg-config/pear:create
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
@@ -22,57 +25,60 @@ finish-args:
 modules:
   - name: pearpass
     buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node22/bin
+      env:
+        XDG_CACHE_HOME: /run/build/pearpass/flatpak-node/cache
+        npm_config_cache: /run/build/pearpass/flatpak-node/npm-cache
     build-commands:
-      # ── Extract AppImage ──────────────────────────────────────────────
-      - chmod +x PearPass.AppImage
-      - ./PearPass.AppImage --appimage-extract
+      # ── Patch package.json/lockfile: replace git deps with local tarballs ──
+      - node flatpak/patch-for-offline.cjs
 
-      # ── Install extracted AppImage payload ────────────────────────────
-      - mkdir -p /app/lib/pearpass
-      - cp -a squashfs-root/. /app/lib/pearpass/
+      # ── Install npm dependencies offline ──────────────────────────────
+      - npm install --offline --ignore-scripts --legacy-peer-deps
+      - cd appling && npm install --offline --ignore-scripts
 
-      # ── Install wrapper scripts ──────────────────────────────────────
-      - install -Dm755 pearpass.sh /app/bin/pearpass
-      - install -Dm755 pearpass-native-host.sh /app/bin/pearpass-native-host
+      # ── Build the application ─────────────────────────────────────────
+      - npm run build:prod
 
-      # ── Native messaging host entry point ────────────────────────────
-      # Invoked via `flatpak run --command=pearpass-native-host com.pears.pass`
-      # by the host-side wrapper script that Chrome's Native Messaging API
-      # launches. Runs the bridge bundle through Electron's embedded Node.
+      # ── Package with electron-builder (dir target, no AppImage) ───────
       - |
-        cat > /app/bin/pearpass-native-host <<'NMHOST'
-        #!/bin/sh
-        # Call the Electron binary directly, bypassing the pearpass-app-desktop
-        # shell launcher which unconditionally injects --no-sandbox. Under
-        # ELECTRON_RUN_AS_NODE=1 the binary runs as Node and rejects that flag,
-        # causing Chrome to see "Native host has exited".
-        APP_ROOT="/app/lib/pearpass"
-        export LD_LIBRARY_PATH="$APP_ROOT${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export ELECTRON_RUN_AS_NODE=1
-        exec "$APP_ROOT/pearpass-app-desktop.bin" \
-          "$APP_ROOT/resources/app/dist/native-messaging-bridge.bundle.cjs" \
-          "$@"
-        NMHOST
-      - chmod +x /app/bin/pearpass-native-host
+        . flatpak-node/electron-builder-arch-args.sh
+        npx electron-builder --linux dir \
+          -c electron-builder.linux.json \
+          -c.linux.target=dir \
+          --publish never \
+          $ELECTRON_BUILDER_ARCH_ARGS
+
+      # ── Install the unpacked app into /app ────────────────────────────
+      - mkdir -p /app/lib/pearpass
+      - cp -a out/linux*unpacked/. /app/lib/pearpass/
+
+      # ── Wrapper scripts ───────────────────────────────────────────────
+      - install -Dm755 flatpak/pearpass.sh /app/bin/pearpass
+      - install -Dm755 flatpak/pearpass-native-host.sh /app/bin/pearpass-native-host
 
       # ── Desktop integration ───────────────────────────────────────────
-      - install -Dm644 com.pears.pass.desktop /app/share/applications/com.pears.pass.desktop
-      - install -Dm644 com.pears.pass.metainfo.xml /app/share/metainfo/com.pears.pass.metainfo.xml
-
-      # ── Install icon (pre-resized to 512x512 by build script) ────────
-      - install -Dm644 icon-512.png /app/share/icons/hicolor/512x512/apps/com.pears.pass.png
+      - install -Dm644 flatpak/com.pears.pass.desktop
+          /app/share/applications/com.pears.pass.desktop
+      - install -Dm644 flatpak/com.pears.pass.metainfo.xml
+          /app/share/metainfo/com.pears.pass.metainfo.xml
+      - install -Dm644 flatpak/icon-512.png
+          /app/share/icons/hicolor/512x512/apps/com.pears.pass.png
 
     sources:
-      - type: file
-        path: appimage/PearPass.AppImage
-      - type: file
-        path: com.pears.pass.desktop
-      - type: file
-        path: com.pears.pass.metainfo.xml
-      - type: file
-        path: icon-512.png
-      - type: file
-        path: pearpass.sh
-      - type: file
-        path: pearpass-native-host.sh
+      # ── Application source ────────────────────────────────────────────
+      # For Flathub: use the public GitHub URL + release commit
+      # - type: git
+      #   url: https://github.com/tetherto/pearpass-app-desktop.git
+      #   commit: UPDATE_WITH_RELEASE_COMMIT
+      # For local testing: use the local repo + branch
+      - type: git
+        url: file:///home/alvaro/pearpass-app-desktop
+        branch: fix/flatpak-offline-build-capabilities
 
+      # ── Offline npm sources for root package-lock.json ────────────────
+      - generated-sources.json
+
+      # ── Offline npm sources for appling/package-lock.json ─────────────
+      - generated-sources-appling.json
