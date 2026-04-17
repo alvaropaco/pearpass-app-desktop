@@ -11,7 +11,7 @@ import { RECORD_COLOR_BY_TYPE } from '../../../constants/recordColorByType'
 import { useModal } from '../../../context/ModalContext'
 import { useGlobalLoading } from '../../../context/LoadingContext'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { InsertDriveFileOutlined, DoneAll } from '@tetherto/pearpass-lib-ui-kit/icons'
+import { Folder, Layers } from '@tetherto/pearpass-lib-ui-kit/icons'
 import { RecordAvatar } from '../../../components/RecordAvatar'
 
 const ALL_ID = '__all__'
@@ -93,7 +93,7 @@ export const MoveFolderModalContentV2 = ({
       id: ALL_ID,
       kind: 'all',
       label: t('All Items'),
-      icon: <DoneAll width={20} height={20} style={{ color: iconColor }} />
+      icon: <Layers width={20} height={20} style={{ color: iconColor }} />
     })
 
     for (const f of customFolders.sort((a, b) =>
@@ -105,7 +105,7 @@ export const MoveFolderModalContentV2 = ({
         kind: 'custom',
         customName: name,
         label: name,
-        icon: <InsertDriveFileOutlined width={20} height={20} style={{ color: iconColor }} />
+        icon: <Folder width={20} height={20} style={{ color: iconColor }} />
       })
     }
 

@@ -31,17 +31,10 @@ modules:
         XDG_CACHE_HOME: /run/build/pearpass/flatpak-node/cache
         npm_config_cache: /run/build/pearpass/flatpak-node/npm-cache
     build-commands:
-      # ── Patch package.json/lockfile: replace git deps with local tarballs ──
       - node flatpak/patch-for-offline.cjs
-
-      # ── Install npm dependencies offline ──────────────────────────────
       - npm install --offline --ignore-scripts --legacy-peer-deps
       - cd appling && npm install --offline --ignore-scripts
-
-      # ── Build the application ─────────────────────────────────────────
       - npm run build:prod
-
-      # ── Package with electron-builder (dir target, no AppImage) ───────
       - |
         . flatpak-node/electron-builder-arch-args.sh
         npx electron-builder --linux dir \
@@ -49,16 +42,10 @@ modules:
           -c.linux.target=dir \
           --publish never \
           $ELECTRON_BUILDER_ARCH_ARGS
-
-      # ── Install the unpacked app into /app ────────────────────────────
       - mkdir -p /app/lib/pearpass
       - cp -a out/linux*unpacked/. /app/lib/pearpass/
-
-      # ── Wrapper scripts ───────────────────────────────────────────────
       - install -Dm755 flatpak/pearpass.sh /app/bin/pearpass
       - install -Dm755 flatpak/pearpass-native-host.sh /app/bin/pearpass-native-host
-
-      # ── Desktop integration ───────────────────────────────────────────
       - install -Dm644 flatpak/com.pears.pass.desktop
           /app/share/applications/com.pears.pass.desktop
       - install -Dm644 flatpak/com.pears.pass.metainfo.xml
@@ -67,18 +54,8 @@ modules:
           /app/share/icons/hicolor/512x512/apps/com.pears.pass.png
 
     sources:
-      # ── Application source ────────────────────────────────────────────
-      # For Flathub: use the public GitHub URL + release commit
-      # - type: git
-      #   url: https://github.com/tetherto/pearpass-app-desktop.git
-      #   commit: UPDATE_WITH_RELEASE_COMMIT
-      # For local testing: use the local repo + branch
       - type: git
         url: file:///home/alvaro/pearpass-app-desktop
         branch: fix/flatpak-offline-build-capabilities
-
-      # ── Offline npm sources for root package-lock.json ────────────────
       - generated-sources.json
-
-      # ── Offline npm sources for appling/package-lock.json ─────────────
       - generated-sources-appling.json
