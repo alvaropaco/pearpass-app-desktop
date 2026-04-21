@@ -19,10 +19,21 @@ export const createStyles = (colors: ThemeColors) => ({
     width: '100%'
   },
 
+  descriptionText: {
+    fontSize: `${rawTokens.fontSize14}px`,
+    fontWeight: rawTokens.weightRegular,
+    lineHeight: 'normal' as const
+  },
+
+  descriptionLink: {
+    fontWeight: rawTokens.weightMedium
+  },
+
   fieldContainer: {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
+    alignSelf: 'stretch' as const,
     gap: `${rawTokens.spacing12}px`,
     padding: `15px ${rawTokens.spacing12}px`,
     border: `1px solid ${colors.colorBorderPrimary}`,
@@ -30,13 +41,16 @@ export const createStyles = (colors: ThemeColors) => ({
     width: '100%'
   },
 
-  fadeawayGradient: {
-    position: 'absolute' as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '70px',
-    pointerEvents: 'none' as const,
-    background: `linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, ${colors.colorSurfacePrimary}B3 55%, ${colors.colorSurfacePrimary} 100%)`
+  checkForUpdatesButton: {
+    display: 'flex' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    gap: `${rawTokens.spacing4}px`,
+    padding: `${rawTokens.spacing8}px ${rawTokens.spacing12}px`,
+    borderRadius: `${rawTokens.radius8}px`,
+    background: colors.colorPrimary,
+    border: 'none',
+    color: colors.colorOnPrimary,
+    cursor: 'pointer' as const
   }
 })

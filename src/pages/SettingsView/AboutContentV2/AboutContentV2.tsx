@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
 import {
-  Button,
   Link,
   Text,
   Title,
@@ -80,23 +79,28 @@ export const AboutContentV2 = (): React.ReactElement => {
     <section style={styles.section} data-testid="settings-about-v2">
       <div style={styles.header}>
         <Title as="h2">{t('App version')}</Title>
+        {/* @ts-ignore - plain CSS object */}
         <Text
           as="p"
           variant="body"
           color={theme.colors.colorTextSecondary}
+          style={styles.descriptionText}
         >
           {t('Here you can find all the info about your app.')}
           <br />
           {t('Check here to see the')}{' '}
-          <Link href={TERMS_OF_USE} isExternal>
+          {/* @ts-ignore - plain CSS object */}
+          <Link href={TERMS_OF_USE} isExternal style={styles.descriptionLink}>
             {t('Terms of Use')}
           </Link>
           {', '}
-          <Link href={PRIVACY_POLICY} isExternal>
+          {/* @ts-ignore - plain CSS object */}
+          <Link href={PRIVACY_POLICY} isExternal style={styles.descriptionLink}>
             {t('Privacy Statement')}
           </Link>{' '}
           {t('and')}{' '}
-          <Link href={WEBSITE_URL} isExternal>
+          {/* @ts-ignore - plain CSS object */}
+          <Link href={WEBSITE_URL} isExternal style={styles.descriptionLink}>
             {t('visit our website')}
           </Link>
           .
@@ -118,17 +122,15 @@ export const AboutContentV2 = (): React.ReactElement => {
         </Text>
       </div>
 
-      <Button
-        variant="primary"
-        size="small"
-        isLoading={isChecking}
+      <button
+        type="button"
+        style={styles.checkForUpdatesButton}
+        disabled={isChecking}
         onClick={handleCheckForUpdates}
         data-testid="settings-about-v2-check-for-updates"
       >
-        {t('Check for updates')}
-      </Button>
-
-      <div aria-hidden="true" style={styles.fadeawayGradient} />
+        {isChecking ? t('Checking…') : t('Check for updates')}
+      </button>
     </section>
   )
 }

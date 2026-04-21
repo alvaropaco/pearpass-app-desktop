@@ -44,10 +44,12 @@ export const LanguageContentV2 = (): React.ReactElement => {
     <section style={styles.section} data-testid="settings-language-v2">
       <div style={styles.header}>
         <Title as="h2">{t('Language')}</Title>
+        {/* @ts-ignore - plain CSS object */}
         <Text
           as="p"
           variant="body"
           color={theme.colors.colorTextSecondary}
+          style={styles.descriptionText}
         >
           {t('Choose the language of the app.')}
         </Text>
@@ -108,7 +110,6 @@ export const LanguageContentV2 = (): React.ReactElement => {
         </Dropdown>
       </div>
 
-      <div aria-hidden="true" style={styles.fadeawayGradient} />
     </section>
   )
 }
