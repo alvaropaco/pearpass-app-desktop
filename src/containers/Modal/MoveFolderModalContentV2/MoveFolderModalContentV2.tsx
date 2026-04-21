@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 // @ts-ignore - JS module without type declarations
 import { generateAvatarInitials } from '@tetherto/pear-apps-utils-avatar-initials'
 import { Button, Dialog, Text, useTheme } from '@tetherto/pearpass-lib-ui-kit'
-// @ts-expect-error - declaration file is incomplete for these hooks
+// @ts-ignore - declaration file is incomplete for these hooks
 import { useFolders, useRecords } from '@tetherto/pearpass-lib-vault'
 
 import { createStyles } from './MoveFolderModalContentV2.styles'

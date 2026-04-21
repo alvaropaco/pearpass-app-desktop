@@ -3,7 +3,10 @@ import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
 
-import { MANIFEST_NAME, EXTENSION_ID } from '@tetherto/pearpass-lib-constants'
+import {
+  MANIFEST_NAME,
+  CHROMIUM_EXTENSION_ID as EXTENSION_ID
+} from '@tetherto/pearpass-lib-constants'
 
 import { logger } from './logger'
 import flatpakPaths from '../../electron/flatpak-paths.cjs'

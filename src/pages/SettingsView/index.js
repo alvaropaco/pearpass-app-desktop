@@ -4,7 +4,9 @@ import { colors } from '@tetherto/pearpass-lib-ui-theme-provider'
 import { html } from 'htm/react'
 
 import { AboutContent } from './AboutContent'
+import { AboutContentV2 } from './AboutContentV2/AboutContentV2'
 import { AppearanceContent } from './AppearanceContent'
+import { LanguageContentV2 } from './LanguageContentV2/LanguageContentV2'
 import { SecurityContent } from './SecurityContent'
 import {
   NavBar,
@@ -28,6 +30,7 @@ import {
   SyncingIcon,
   VaultIcon
 } from '../../lib-react-components'
+import { isV2 } from '../../utils/designVersion'
 
 const NAV_ITEMS = [
   { key: 'security', label: 'Security', icon: SecurityIcon },
@@ -46,9 +49,11 @@ const renderActiveContent = (activeTab) => {
     case 'vault':
       return html`<${VaultContent} />`
     case 'appearance':
-      return html`<${AppearanceContent} />`
+      return isV2()
+        ? html`<${LanguageContentV2} />`
+        : html`<${AppearanceContent} />`
     case 'about':
-      return html`<${AboutContent} />`
+      return isV2() ? html`<${AboutContentV2} />` : html`<${AboutContent} />`
     default:
       return null
   }
